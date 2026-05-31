@@ -1,0 +1,54 @@
+{
+  "konum": 3400,
+  "ham_pencere_normalize": [
+    0.1954,
+    0.1571,
+    0.4492,
+    -0.0028
+  ],
+  "paa": [
+    0.1954,
+    0.1571,
+    0.4492,
+    -0.0028
+  ],
+  "durum_sax": "bbcb",
+  "yol": [
+    "aabb",
+    "abbc",
+    "bbcb"
+  ],
+  "gecisler": [
+    {
+      "kaynak_pattern": "aabb",
+      "hedef_pattern": "abbc",
+      "etkin_kaynak": "aabb",
+      "etkin_hedef": "abbc",
+      "gecis_olasiligi": 0.003436426116838488,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "abbc",
+      "levenshtein_mesafe": 0
+    },
+    {
+      "kaynak_pattern": "abbc",
+      "hedef_pattern": "bbcb",
+      "etkin_kaynak": "abbc",
+      "etkin_hedef": "bbcb",
+      "gecis_olasiligi": 0.05172413793103448,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "bbcb",
+      "levenshtein_mesafe": 0
+    }
+  ],
+  "path_olasiligi": 0.00017774617851232358,
+  "log_olasilik": -8.63515398873947,
+  "unseen_ceza": 0.0,
+  "anomali_skoru": 8.63515398873947,
+  "esik": 0.2179144435569589,
+  "karar": 1,
+  "karar_metni": "ANOMALI",
+  "anomali_olasiligi": 0.9995,
+  "guven_skoru": 0.9991,
+  "gercek_etiket": 0,
+  "aciklama_metni": "Pencere sonu durumu 'bbcb'. Son 2 gecisin yol olasiligi 1.777e-04 (dusuk olasilik = beklenmedik gidisat). Toplam anomali skoru 8.64, esik (0.22) degerini astigi icin karar: ANOMALI (guven 1.00)."
+}

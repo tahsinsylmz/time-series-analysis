@@ -1,0 +1,54 @@
+{
+  "konum": 2274,
+  "ham_pencere_normalize": [
+    0.5628,
+    -0.1262,
+    0.6446,
+    0.048
+  ],
+  "paa": [
+    0.5628,
+    -0.1262,
+    0.6446,
+    0.048
+  ],
+  "durum_sax": "cbcb",
+  "yol": [
+    "bacb",
+    "acbc",
+    "cbcb"
+  ],
+  "gecisler": [
+    {
+      "kaynak_pattern": "bacb",
+      "hedef_pattern": "acbc",
+      "etkin_kaynak": "bacb",
+      "etkin_hedef": "aabc",
+      "gecis_olasiligi": 0.016129032258064516,
+      "hedef_unseen": true,
+      "en_yakin_pattern": "aabc",
+      "levenshtein_mesafe": 1
+    },
+    {
+      "kaynak_pattern": "acbc",
+      "hedef_pattern": "cbcb",
+      "etkin_kaynak": "aabc",
+      "etkin_hedef": "cbcb",
+      "gecis_olasiligi": 0.017241379310344827,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "cbcb",
+      "levenshtein_mesafe": 0
+    }
+  ],
+  "path_olasiligi": 0.0002780867631034483,
+  "log_olasilik": -8.18757739547151,
+  "unseen_ceza": 1.0,
+  "anomali_skoru": 9.18757739547151,
+  "esik": 0.2179144435569589,
+  "karar": 1,
+  "karar_metni": "ANOMALI",
+  "anomali_olasiligi": 0.9997,
+  "guven_skoru": 0.9994,
+  "gercek_etiket": 0,
+  "aciklama_metni": "Pencere sonu durumu 'cbcb'. Son 2 gecisin yol olasiligi 2.781e-04 (dusuk olasilik = beklenmedik gidisat). 1 gecis egitimde gorulmemis pattern iceriyor; ornegin 'acbc' en yakin bilinen 'aabc' pattern'ine Levenshtein=1 uzakliginda, toplam +1.0 ceza eklendi. Toplam anomali skoru 9.19, esik (0.22) degerini astigi icin karar: ANOMALI (guven 1.00)."
+}
