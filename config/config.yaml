@@ -1,0 +1,107 @@
+# ==========================================================================
+# MERKEZI KONFIGURASYON
+# --------------------------------------------------------------------------
+# Projedeki tum parametreler bu dosyadan yonetilir. Kaynak kodda hicbir
+# hard-coded sayisal deger yoktur. Bu dosyadaki bir parametre degistiginde
+# on isleme, modelleme ve deney pipeline'i otomatik olarak yeniden uretilir.
+# ==========================================================================
+
+genel:
+  cikti_dizini: "results"
+  rastgele_seedler: [42, 123, 2026, 7, 999]   # her deney 5 seed ile tekrarlanir
+
+# --------------------------------------------------------------------------
+# Veri setleri (her grup iki veri seti uzerinde calisir)
+# --------------------------------------------------------------------------
+veri_setleri:
+  skab:
+    ad: "SKAB"
+    kok_dizin: "data/SKAB"
+    klasorler: ["valve1", "valve2"]
+    ayrac: ";"
+    zaman_sutunu: "datetime"
+    hedef_sutun: "anomaly"
+    # Model girdisine dahil edilmeyecek sutunlar (sadece takip/analiz amacli):
+    haric_sutunlar: ["datetime", "anomaly", "changepoint", "source_group", "source_file"]
+    grup_sutunu: "source_file"        # dosya bazli bolme icin grup degiskeni
+    bolme: "group_kfold"              # StratifiedGroupKFold
+    fold_sayisi: 5
+    fold_tohumu: 42                   # CV bolunmesi icin sabit tohum (tekrar uretilebilir)
+    dogrulama_orani: 0.2              # egitim icinden ayrilan dogrulama grubu orani
+
+  batadal:
+    ad: "BATADAL"
+    dosya: "data/BATADAL/BATADAL_dataset04.csv"   # Training Dataset 2
+    zaman_sutunu: "DATETIME"
+    hedef_sutun: "ATT_FLAG"
+    pozitif_deger: 1                  # ATT_FLAG == 1 -> anomali; diger (-999) -> normal
+    haric_sutunlar: ["DATETIME", "ATT_FLAG"]
+    bolme: "zaman_sirali"             # zaman sirali %60/%20/%20
+    egitim_orani: 0.6
+    dogrulama_orani: 0.2
+    test_orani: 0.2
+
+# --------------------------------------------------------------------------
+# On isleme (sizinti onleme: tum fit islemleri yalnizca train uzerinde)
+# --------------------------------------------------------------------------
+on_isleme:
+  normalizasyon: "standard"           # StandardScaler, sadece train'de fit edilir
+  eksik_veri_doldurma: "interpolate"  # zaman sirali dogrusal interpolasyon
+  pca:
+    aktif: true
+    bilesen_sayisi: 1                 # otomata tek boyut ister -> PC1
+    sadece_otomata: true              # PCA cikti yalnizca otomata girdisinde kullanilir
+
+# --------------------------------------------------------------------------
+# Deney senaryolari (test aninda uygulanir: model temiz veriyle bir kez
+# egitilir, ardindan uc kosulda degerlendirilir -> dayaniklilik analizi)
+# --------------------------------------------------------------------------
+senaryolar:
+  liste: ["orijinal", "gurultu", "unseen"]
+  gurultu:
+    tip: "gaussian"
+    std: 0.3                          # normalize edilmis veri uzerinde gurultu sapmasi
+  unseen:
+    aciklama: "Sensor kazanc kaymasi sonrasi egitim sozlugunde bulunmayan pattern noktalari"
+    olcek_faktoru: 1.8                # normalize test sinyaline uygulanan genlik kaymasi (novelty)
+
+# --------------------------------------------------------------------------
+# Derin ogrenme modelleri (black-box)
+# --------------------------------------------------------------------------
+derin_ogrenme:
+  modeller: ["lstm", "gru", "cnn1d"]  # en az ikisi zorunlu; ucu de uygulaniyor
+  dizi_uzunlugu: 30                   # sliding window (zaman adimi sayisi)
+  adim: 3                             # pencereler arasi kayma (stride)
+  etiket_stratejisi: "son_adim"       # pencerenin son adiminin etiketi tahmin edilir
+  epoch: 50                           # ust sinir
+  batch_boyutu: 32
+  ogrenme_orani: 0.001
+  early_stopping_sabri: 5             # validation loss patience
+  gizli_boyut: 48
+  katman_sayisi: 1
+  dropout: 0.2
+  sinif_agirligi: true                # dengesiz veri icin sinif agirliklandirma
+
+# --------------------------------------------------------------------------
+# Olasiliksal otomata modeli (interpretable)
+# --------------------------------------------------------------------------
+otomata:
+  window_size: 4                      # SABIT parametre (karsilastirma icin)
+  alphabet_size: 3                    # SABIT parametre (karsilastirma icin)
+  paa_bolme_faktoru: 1                # PAA segment faktoru (1 = ham seri cozunurlugu)
+  smoothing: "laplace"
+  laplace_alpha: 1.0                  # gecis olasiliklari icin Laplace yumusatma
+  path_uzunlugu: 2                    # path probability icin ardisik gecis sayisi
+  esik_stratejisi: "f1_maks"          # karar esigi: validation/train uzerinde F1 maksimize
+  # Parametre duyarlilik analizi (Tablo 4) icin taranan degerler:
+  parametre_taramasi:
+    window_size: [3, 4, 5, 6]
+    alphabet_size: [3, 4, 5, 6]
+
+# --------------------------------------------------------------------------
+# Degerlendirme ve istatistiksel analiz
+# --------------------------------------------------------------------------
+degerlendirme:
+  metrikler: ["accuracy", "precision", "recall", "f1"]
+  pozitif_sinif: 1                    # anomali = pozitif sinif
+  istatistik_testleri: ["wilcoxon", "mcnemar"]

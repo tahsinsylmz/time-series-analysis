@@ -1,0 +1,43 @@
+# Ham veri setleri (boyutlu; ayrica kaynagindan indirilir)
+data/
+
+# Uretilen ciktilar: ham/gecici olanlar haric, rapor icin gerekli
+# ozet ciktilar ve figurler repoya dahil edilir
+results/*
+!results/figurler/
+!results/aciklamalar/
+!results/olcumler.csv
+!results/ozet.csv
+!results/parametre_taramasi_skab.csv
+!results/istatistik_testleri.json
+
+# PDF metin ciktilari ve ders dokumanlari (repoya konmaz)
+yazlab2_v3-1.txt
+yazlab2-EK-1.txt
+yazlab2_v3-1.pdf
+yazlab2-EK-1.pdf
+
+# Ekip ici gorev dosyasi (repoya konmaz)
+MURAT_GOREVLER.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Isletim sistemi / IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
