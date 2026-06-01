@@ -184,17 +184,24 @@ toplanır (window 3–6 arası F1 ≈ 0,518–0,520; pratikte stabil).
 
 ## 6. Açıklanabilirlik Örneği
 
-`scripts/demo_explain.py` çıktısından gerçek bir karar (SKAB, konum 2274):
+`scripts/demo_explain.py` çıktısından **doğru yakalanmış** gerçek bir anomali
+(SKAB ilk kat, konum 3029, gerçek etiket = 1 → doğru pozitif):
 
 ```
-Durum (SAX) : cbcb
-Yol         : bacb -> acbc -> cbcb
-Skor / Eşik : 9.188 / 0.218  ->  Karar: ANOMALİ (güven 1.00)
-Açıklama    : Son 2 geçişin yol olasılığı 2.781e-04 (düşük olasılık = beklenmedik
-              gidişat). 1 geçiş eğitimde görülmemiş örüntü içeriyor; örneğin 'acbc'
-              en yakın bilinen 'aabc' örüntüsüne Levenshtein=1 uzaklığında, toplam
-              +1.0 ceza eklendi. Toplam skor 9.19 eşiği (0.22) aştığı için ANOMALİ.
+Durum (SAX) : aaaa
+Yol         : aaaa -> baab -> aaaa
+Skor / Eşik : 9.049 / 0.126  ->  Karar: ANOMALİ (güven 0.92), gerçek etiket = 1
+Açıklama    : Pencere sonu durumu 'aaaa'. Son 2 geçişin yol olasılığı 1.176e-04
+              (düşük olasılık = beklenmedik gidişat). Toplam skor 9.05 eşiği (0.13)
+              aştığı için ANOMALİ.
 ```
+
+Demo seti tek bir uca bağlı kalmaz: en yüksek skorlu noktalar, yukarıdaki gibi bir
+**doğru pozitif** ve en düşük skorlu nokta birlikte yazılır (her örnekte `kategori`
+alanı vardır). Otomata yüksek-recall/düşük-precision çalıştığından (precision ≈ 0,34)
+en yüksek skorlu noktalar çoğu zaman **yanlış pozitiftir**; bu örnek seti hem doğru
+yakalamayı hem de bu eğilimi şeffaf gösterir. Görülmemiş örüntülerde devreye giren
+Levenshtein cezası ise `unseen` senaryosunda gözlenir (bkz. §3.2).
 
 Derin öğrenme modelleri bu tür bir gerekçe **üretemez**; projenin temel katkısı
 budur. Otomatanın iç yapısı da görselleştirilebilir:

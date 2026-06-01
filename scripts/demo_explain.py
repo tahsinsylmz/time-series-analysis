@@ -75,7 +75,8 @@ def main() -> None:
 
     model = OtomataAnomaliModeli(cfg).egit(g_tr, g_val)
     aciklayici = OtomataAciklayici(model)
-    aciklamalar = aciklayici.en_anomalileri_acikla(g_test, k=args.k)
+    # Cesitli set: en anomalik noktalar + bir dogru-pozitif + bir guvenli normal
+    aciklamalar = aciklayici.secili_ornekler(g_test, k_anomali=args.k)
 
     cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini, "aciklamalar")
     os.makedirs(cikti, exist_ok=True)
@@ -85,11 +86,13 @@ def main() -> None:
     with open(os.path.join(cikti, "ozet.json"), "w", encoding="utf-8") as f:
         json.dump(aciklamalar, f, ensure_ascii=False, indent=2)
 
+    kategoriler = ", ".join(sorted({a.get("kategori", "?") for a in aciklamalar}))
     print(f"{len(aciklamalar)} aciklama '{cikti}' dizinine yazildi "
-          f"(otomata durum sayisi={model.oto.K}, esik={model.esik:.3f}).\n")
+          f"(otomata durum sayisi={model.oto.K}, esik={model.esik:.3f}; "
+          f"kategoriler: {kategoriler}).\n")
     if aciklamalar:
         ilk = aciklamalar[0]
-        print("--- En anomalik nokta (ornek) ---")
+        print(f"--- Ornek nokta (kategori: {ilk.get('kategori', '?')}) ---")
         print(f"Konum       : {ilk['konum']}")
         print(f"Durum (SAX) : {ilk['durum_sax']}")
         print(f"Yol         : {' -> '.join(ilk['yol'])}")

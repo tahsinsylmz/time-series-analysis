@@ -123,3 +123,48 @@ class OtomataAciklayici:
             return []
         sira = np.argsort(skorlar)[::-1][:k]
         return [self.acikla(veri, int(konumlar[i])) for i in sira]
+
+    # ---- toplu: temsili (cesitli) ornek seti ----
+    def secili_ornekler(self, veri: ModelGirdisi, k_anomali: int = 3) -> list[dict]:
+        """Demo icin CESITLI bir ornek seti aciklar.
+
+        Yalnizca en yuksek skorlu (anomali tahmini) noktalar degil; aciklamanin
+        her iki yonu de gorulebilsin diye en az bir DOGRU-POZITIF (gercek=1 ve
+        model anomali dedi) ve bir GUVENLI NORMAL (gercek=0 ve model normal dedi)
+        ornek de eklenir. Her aciklamaya ``kategori`` etiketi konur.
+        """
+        skorlar, konumlar = self.model.skor(veri)
+        if skorlar.size == 0:
+            return []
+        y = veri.y[konumlar]
+        karar = (skorlar >= self.model.esik).astype(int)
+
+        secili: list[tuple[int, str]] = []   # (dizi_indeksi, kategori)
+        kullanilan: set[int] = set()
+
+        def ekle(idx: int, kategori: str) -> None:
+            if idx >= 0 and idx not in kullanilan:
+                secili.append((idx, kategori))
+                kullanilan.add(idx)
+
+        # 1) En yuksek skorlu k_anomali nokta
+        for i in np.argsort(skorlar)[::-1][:k_anomali]:
+            ekle(int(i), "en_anomalik")
+        # 2) En guclu dogru-pozitif (gercek=1 ve anomali kararli, en yuksek skor)
+        tp = np.where((y == 1) & (karar == 1))[0]
+        if tp.size:
+            ekle(int(tp[np.argmax(skorlar[tp])]), "dogru_pozitif")
+        # 3) Dusuk skorlu (normal kategorisi): once guvenli normal (gercek=0 & karar=0),
+        #    yoksa (esik cok dusuk olabilir) genel olarak EN DUSUK skorlu nokta secilir.
+        tn = np.where((y == 0) & (karar == 0))[0]
+        if tn.size:
+            ekle(int(tn[np.argmin(skorlar[tn])]), "normal")
+        else:
+            ekle(int(np.argmin(skorlar)), "en_dusuk_skor")
+
+        sonuc = []
+        for idx, kategori in secili:
+            ack = self.acikla(veri, int(konumlar[idx]))
+            ack["kategori"] = kategori
+            sonuc.append(ack)
+        return sonuc
