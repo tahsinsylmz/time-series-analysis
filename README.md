@@ -43,7 +43,10 @@ Tüm `fit` işlemleri **yalnızca eğitim** bölmesinde yapılır:
 dönüşümle ölçeklenir. Eksik değerler zaman sıralı doğrusal interpolasyonla
 doldurulur. Otomata tek boyutlu girdi istediğinden PCA'nın birinci bileşeni
 (**PC1**) kullanılır; derin öğrenme modelleri çok değişkenli ölçeklenmiş
-seriyi alır.
+seriyi alır. PC1'in açıkladığı varyans oranı (eğitim bölmesinde): **SKAB ≈ %30,4**
+(8 özellik, katlar arası ortalama), **BATADAL ≈ %20,6** (43 özellik). BATADAL'da
+tek bileşenin payı düşüktür; bu, otomatanın tek boyuta indirgemesinin BATADAL'da
+bilgi kaybına yol açtığını ve düşük başarıya katkıda bulunduğunu gösterir.
 
 ### 3.2 Beyaz Kutu — Olasılıksal Otomata
 
