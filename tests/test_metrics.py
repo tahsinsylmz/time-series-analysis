@@ -1,0 +1,64 @@
+"""Metrik ve karar esigi birim testleri."""
+import numpy as np
+import pytest
+
+from src.experiments.metrics import ikili_metrikler
+from src.utils.esik import f1_maksimize_esik
+
+
+def test_ikili_metrikler_elle_dogrulanmis():
+    # TP=2, FP=1, FN=1, TN=1 olacak sekilde kuruldu
+    y_true = np.array([1, 1, 0, 0, 1])
+    y_pred = np.array([1, 0, 0, 1, 1])
+    m = ikili_metrikler(y_true, y_pred)
+    assert m["precision"] == pytest.approx(2 / 3)   # TP/(TP+FP)
+    assert m["recall"] == pytest.approx(2 / 3)       # TP/(TP+FN)
+    assert m["f1"] == pytest.approx(2 / 3)
+    assert m["accuracy"] == pytest.approx(0.6)        # (TP+TN)/5
+    assert m["n"] == 5 and m["pozitif"] == 3
+
+
+def test_roc_auc_yonu():
+    # skorlar pozitifte yuksek -> mukemmel ayrim
+    y = np.array([0, 0, 1, 1])
+    skor = np.array([0.1, 0.2, 0.8, 0.9])
+    m = ikili_metrikler(y, (skor >= 0.5).astype(int), skor)
+    assert m["roc_auc"] == pytest.approx(1.0)
+    assert m["pr_auc"] == pytest.approx(1.0)
+    # skorlar ters cevrilirse roc_auc = 0
+    m2 = ikili_metrikler(y, (skor >= 0.5).astype(int), skor[::-1])
+    assert m2["roc_auc"] == pytest.approx(0.0)
+
+
+def test_tek_sinifta_auc_uretilmez():
+    y = np.zeros(4, dtype=int)
+    m = ikili_metrikler(y, np.zeros(4, dtype=int), np.array([0.1, 0.2, 0.3, 0.4]))
+    assert "roc_auc" not in m and "pr_auc" not in m
+
+
+def test_esik_ayrilabilir_veride_mukemmel_f1():
+    skor = np.array([0.0, 1.0, 2.0, 10.0, 11.0, 12.0])
+    y = np.array([0, 0, 0, 1, 1, 1])
+    esik = f1_maksimize_esik(skor, y)
+    tahmin = (skor >= esik).astype(int)
+    # esik anomalileri normalden tam ayirmali
+    assert tahmin.tolist() == y.tolist()
+
+
+def test_esik_bos_girdi():
+    assert f1_maksimize_esik(np.array([]), np.array([])) == 0.0
+
+
+def test_esik_tek_sinif_medyan_fallback():
+    skor = np.array([1.0, 2.0, 3.0, 4.0])
+    y = np.zeros(4, dtype=int)            # tek sinif
+    assert f1_maksimize_esik(skor, y) == pytest.approx(np.median(skor))
+
+
+def test_esik_aday_sayisi_sinirlamasi():
+    # aday_sayisi'ndan cok benzersiz skor -> nicelik ile ornekler, gecerli deger doner
+    rng = np.random.default_rng(0)
+    skor = rng.random(1000)
+    y = (skor > 0.5).astype(int)
+    esik = f1_maksimize_esik(skor, y, aday_sayisi=50)
+    assert skor.min() <= esik <= skor.max()
