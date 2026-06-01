@@ -123,8 +123,11 @@ bir güven skoru. Örnek için: `python -m scripts.demo_explain`
   **yüksek recall (0,95) – düşük precision (0,36)** profiline sahip: anomalilerin
   neredeyse tümünü yakalar ama çok yanlış alarm üretir.
 - BATADAL herkes için zordur (küçük, çok dengesiz, eğitim/test dağılımı farklı).
-  **1D-CNN tamamen çoğunluk sınıfına çöker (F1 = 0, hiç anomali yakalamaz)**;
-  otomata (0,049) ve GRU (0,047) benzer düzeydedir.
+  **1D-CNN F1 = 0'a düşer (seçilen eşikle hiç anomali işaretlemez)**; üstelik
+  `roc_auc ≈ 0,05` (5 tohum ort.) salt çoğunluk-sınıfı çöküşünden (≈ 0,50)
+  belirgin biçimde düşüktür — yani skorlar **sistematik olarak ters sıralanmış**:
+  ağ gerçek anomalilere düşük skor verir (dağılım kayması altında dejenere eğitim).
+  Otomata (F1 = 0,049) ve GRU (0,047) benzer düzeyde düşük kalır.
 
 ### 5.2 Dayanıklılık (senaryolar arası F1)
 
