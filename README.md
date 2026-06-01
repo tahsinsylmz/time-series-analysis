@@ -87,6 +87,11 @@ bir güven skoru. Örnek için: `python -m scripts.demo_explain`
 - **Senaryolar (test anında):** model temiz veriyle bir kez eğitilir, üç koşulda
   değerlendirilir — `orijinal`, `gurultu` (normalize veriye Gauss gürültüsü, σ=0,3),
   `unseen` (×1,8 kazanç kayması → eğitimde görülmemiş örüntüler / dağılım kayması).
+  `unseen` senaryosu doğrudan **VI.A** tanımını gerçekler: eğitimden çıkarılan SAX
+  sözlüğünde **bulunmayan** örüntüler kazanç kaymasıyla ortaya çıkar; bu örüntüler
+  Levenshtein ile en yakın bilinen duruma eşlenir (bkz. §3.2) ve her koşuda kaç adet
+  sözlük-dışı (novel) örüntü gözlendiği günlüğe yazılır. Senaryonun dayanıklılık
+  metrikleri (F1 vb.) kaydırılmış test setinin tamamında ölçülür.
 - **Tekrarlanabilirlik:** 5 rastgele tohum `[42, 123, 2026, 7, 999]`; otomata
   deterministik olduğundan kat başına bir kez eğitilir.
 - **İstatistik:** kat bazlı F1 için **Wilcoxon** işaretli sıra testi; aynı test
