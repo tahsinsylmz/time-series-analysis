@@ -87,6 +87,7 @@ derin_ogrenme:
   dropout: 0.2
   sinif_agirligi: true                # dengesiz veri icin sinif agirliklandirma
   cnn_kernel: 3                       # 1B-CNN evrisim cekirdek boyutu (padding = cekirdek // 2)
+  cihaz: "cpu"                        # egitim/cikarim cihazi: "cpu" | "cuda" | "otomatik"
 
 # --------------------------------------------------------------------------
 # Olasiliksal otomata modeli (interpretable)
