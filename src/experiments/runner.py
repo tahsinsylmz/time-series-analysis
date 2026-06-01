@@ -41,6 +41,8 @@ class DeneyYoneticisi:
         self.seeds = list(cfg.genel.rastgele_seedler)
         self.senaryolar = list(cfg.senaryolar.liste)
         self.gurultu_std = float(cfg.senaryolar.gurultu.std)
+        self.gurultu_tohum_skab = int(cfg.senaryolar.gurultu.tohum_skab)
+        self.gurultu_tohum_batadal = int(cfg.senaryolar.gurultu.tohum_batadal)
         self.unseen_faktor = float(cfg.senaryolar.unseen.olcek_faktoru)
         self.dl_modeller = list(cfg.derin_ogrenme.modeller)
         self.cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini)
@@ -107,7 +109,7 @@ class DeneyYoneticisi:
             g_tr = temiz_girdi(on, ham.X[ytr], ham.y[ytr], ham.gruplar[ytr])
             g_val = temiz_girdi(on, ham.X[val], ham.y[val], ham.gruplar[val])
             g_test = temiz_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx])
-            rng = np.random.default_rng(1000 + fold_i)
+            rng = np.random.default_rng(self.gurultu_tohum_skab + fold_i)
             g_gurultu = gurultulu_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx],
                                         self.gurultu_std, rng)
             g_unseen = kaydirilmis_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx],
@@ -162,7 +164,7 @@ class DeneyYoneticisi:
             return temiz_girdi(on, ham.X[idx], ham.y[idx], seg[idx])
 
         g_tr, g_val, g_test = g(tr), g(val), g(test)
-        rng = np.random.default_rng(2000)
+        rng = np.random.default_rng(self.gurultu_tohum_batadal)
         g_gurultu = gurultulu_girdi(on, ham.X[test], ham.y[test], seg[test], self.gurultu_std, rng)
         g_unseen = kaydirilmis_girdi(on, ham.X[test], ham.y[test], seg[test], self.unseen_faktor)
 

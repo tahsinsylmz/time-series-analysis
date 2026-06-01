@@ -34,6 +34,8 @@ class OtomataAnomaliModeli(AnomaliModeli):
         self.paa_faktoru = int(oc.paa_bolme_faktoru)
         self.alpha = float(oc.laplace_alpha)
         self.path_uzunlugu = int(oc.path_uzunlugu)
+        self.unseen_ceza_agirligi = float(oc.unseen_ceza_agirligi)
+        self.esik_aday_sayisi = int(cfg.degerlendirme.esik_aday_sayisi)
         self.ham_pencere = self.w * self.paa_faktoru   # ham nokta sayisi
         self.kesimler = sax_kesim_noktalari(self.a)
         self.oto: OlasiliksalOtomata | None = None
@@ -85,7 +87,7 @@ class OtomataAnomaliModeli(AnomaliModeli):
         # Karar esigi: dogrulama (yoksa egitim) uzerinde F1 maksimize
         referans = dogrulama if dogrulama is not None else egitim
         skorlar, konumlar = self.skor(referans)
-        self.esik = f1_maksimize_esik(skorlar, referans.y[konumlar])
+        self.esik = f1_maksimize_esik(skorlar, referans.y[konumlar], self.esik_aday_sayisi)
         self.ref_skor_sd = float(np.std(skorlar) + 1e-8)
         return self
 
@@ -117,7 +119,7 @@ class OtomataAnomaliModeli(AnomaliModeli):
                 "en_yakin_pattern": hedef_coz[2],
                 "levenshtein_mesafe": int(hedef_coz[3]),
             })
-        skor = -log_olasilik + unseen_ceza   # yuksek skor = anomali
+        skor = -log_olasilik + self.unseen_ceza_agirligi * unseen_ceza   # yuksek skor = anomali
         return {
             "skor": float(skor),
             "log_olasilik": float(log_olasilik),

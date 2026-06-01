@@ -28,7 +28,8 @@ class OnIslemci:
         if self.cfg.on_isleme.pca.aktif:
             olcekli = self.scaler.transform(X_egitim)
             n = self.cfg.on_isleme.pca.bilesen_sayisi
-            self.pca = PCA(n_components=n, random_state=0).fit(olcekli)
+            tohum = int(self.cfg.on_isleme.pca.tohum)
+            self.pca = PCA(n_components=n, random_state=tohum).fit(olcekli)
         return self
 
     def olcekle(self, X: np.ndarray) -> np.ndarray:

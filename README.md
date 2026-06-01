@@ -88,7 +88,9 @@ bir güven skoru. Örnek için: `python -m scripts.demo_explain`
   deterministik olduğundan kat başına bir kez eğitilir.
 - **İstatistik:** kat bazlı F1 için **Wilcoxon** işaretli sıra testi; aynı test
   noktalarındaki kararlar için **McNemar** testi.
-- Tüm parametreler `config/config.yaml` dosyasından yönetilir (kodda sabit sayı yoktur).
+- Tüm ayarlanabilir parametreler `config/config.yaml` dosyasından yönetilir; kodda
+  deney davranışını etkileyen sabit sayı yoktur (tek istisna, sıfıra bölmeyi önleyen
+  `1e-8`/`1e-12` gibi matematiksel epsilon sabitleridir).
 
 ## 5. Sonuçlar
 
@@ -232,7 +234,8 @@ results/                    Deney çıktıları, figürler, açıklamalar
 - **SOLID/OOP:** koşturucu somut modellere değil `AnomaliModeli` arayüzüne bağımlıdır;
   yeni model eklemek için yalnızca fabrika genişletilir (açık/kapalı ilkesi).
 - **Sızıntı yok:** tüm `fit` işlemleri yalnızca eğitim bölmesinde.
-- **Tekrarlanabilirlik:** sabit tohumlar, merkezî konfig, kodda sabit sayı yok.
+- **Tekrarlanabilirlik:** sabit tohumlar, merkezî konfig; kodda yalnızca matematiksel
+  epsilon sabitleri kalır, ayarlanabilir parametreler config'tedir.
 - **Dürüst sonuç:** tüm tablolar gerçek deney çıktısıdır; yer tutucu/uydurma değer yoktur.
 
 ## 10. Özet Bulgu
