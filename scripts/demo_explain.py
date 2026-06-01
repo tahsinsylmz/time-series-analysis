@@ -97,7 +97,7 @@ def main() -> None:
         print(f"Durum (SAX) : {ilk['durum_sax']}")
         print(f"Yol         : {' -> '.join(ilk['yol'])}")
         print(f"Skor / Esik : {ilk['anomali_skoru']:.3f} / {ilk['esik']:.3f}")
-        print(f"Karar       : {ilk['karar_metni']} (gercek etiket={ilk['gercek_etiket']})")
+        print(f"Karar       : {ilk['karar_metni']} (gercek etiket={ilk['teshis']['gercek_etiket']})")
         print(f"Aciklama    : {ilk['aciklama_metni']}")
 
 

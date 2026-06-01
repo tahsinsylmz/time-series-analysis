@@ -94,11 +94,28 @@ class OtomataAciklayici:
         karar = int(skor >= self.model.esik)
         anomali_olasiligi, guven = self._guven(skor)
 
+        # Ister X.F: zorunlu standart cikti formati (son gecis uzerinden)
+        son_gecis = bilgi["gecisler"][-1]
+        spec_formati = {
+            "time_step": int(hedef_konum),
+            "state": son_gecis["kaynak_pattern"],          # onceki durum
+            "pattern": son_gecis["hedef_pattern"],         # gelen oruntu
+            "status": "unseen" if son_gecis["hedef_unseen"] else "seen",
+            "mapped_to": (son_gecis["en_yakin_pattern"] if son_gecis["hedef_unseen"]
+                          else son_gecis["hedef_pattern"]),
+            "probability": round(bilgi["path_olasiligi"], 6),
+            "decision": "anomaly" if karar else "normal",
+        }
+        # Ister X.F alanlari ust seviyede de erisilebilir olsun
+        gercek = int(veri.y[hedef_konum])
+
         return {
             "konum": int(hedef_konum),
             "ham_pencere_normalize": [round(float(x), 4) for x in ham_pencere],
             "paa": [round(float(x), 4) for x in paa],
             "durum_sax": durum,
+            "status": spec_formati["status"],
+            "mapped_to": spec_formati["mapped_to"],
             "yol": [bilgi["gecisler"][0]["kaynak_pattern"]]
                    + [g["hedef_pattern"] for g in bilgi["gecisler"]],
             "gecisler": bilgi["gecisler"],
@@ -111,7 +128,10 @@ class OtomataAciklayici:
             "karar_metni": "ANOMALI" if karar else "NORMAL",
             "anomali_olasiligi": round(anomali_olasiligi, 4),
             "guven_skoru": round(guven, 4),
-            "gercek_etiket": int(veri.y[hedef_konum]),
+            "spec_formati": spec_formati,
+            # Yer-gercegi aciklamanin PARCASI degildir; ayri teshis alaninda tutulur
+            # (aciklama yalnizca modelin ic hesaplamalarina dayanir).
+            "teshis": {"gercek_etiket": gercek, "karar_dogru": bool(karar == gercek)},
             "aciklama_metni": self._metin(durum, bilgi, skor, karar, guven),
         }
 
