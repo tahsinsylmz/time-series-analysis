@@ -30,6 +30,7 @@ yaklaşımı dürüst ve sızıntısız bir düzenekte karşılaştırır.
 
 - **SKAB**: <https://github.com/waico/SKAB> — valf test tezgâhında sensör arızaları.
 - **BATADAL**: <https://www.batadal.net/data.html> — su dağıtım şebekesine siber saldırılar.
+- **Hedef (etiket) sütunları:** SKAB'da `anomaly`, BATADAL'da **`ATT_FLAG`** (`1` = saldırı/anomali → pozitif sınıf; `-999` = normal → `0`). Zaman sütunları (`datetime` / `DATETIME`) ve SKAB'daki `changepoint` / `source_group` / `source_file` yalnızca veri takibi ve dosya bazlı bölme için kullanılır; model girdisine alınmaz.
 
 Veriyi yerinde doğrulamak için: `python -m scripts.download_data`
 
