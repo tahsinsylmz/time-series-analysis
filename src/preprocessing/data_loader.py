@@ -42,12 +42,34 @@ class HamVeri:
         return self.df[self.grup_sutunu].to_numpy()
 
 
-def _eksikleri_doldur(df: pd.DataFrame, sutunlar: list[str]) -> pd.DataFrame:
-    """Sensor sutunlarindaki eksik degerleri dogrusal interpolasyon ile doldurur."""
+def _eksikleri_doldur(
+    df: pd.DataFrame, sutunlar: list[str], grup_sutunu: str | None = None
+) -> pd.DataFrame:
+    """Sensor sutunlarindaki eksik degerleri SIZINTI yapmadan doldurur.
+
+    - ``grup_sutunu`` verilirse (SKAB) doldurma yalnizca o grubun (dosyanin)
+      icinde yapilir; dosya sinirlarini asmaz, boylece bir dosyanin degeri baska
+      bir dosyaya (ve dolayisiyla baska bir fold'a) tasinmaz.
+    - ``grup_sutunu`` yoksa (BATADAL, zaman sirali) yalnizca nedensel (ileri-yon)
+      doldurma kullanilir; gelecekteki (test) degerler gecmise (train) tasinmaz.
+      Bastaki olasi bos degerler yalnizca dizinin en basinda (egitim bolgesi)
+      geri-doldurma ile kapatilir.
+    """
     df = df.copy()
-    df[sutunlar] = (
-        df[sutunlar].interpolate(method="linear", limit_direction="both").bfill().ffill()
-    )
+    if grup_sutunu is not None:
+        parcalar = []
+        for _, grup in df.groupby(grup_sutunu, sort=False):
+            grup = grup.copy()
+            grup[sutunlar] = (
+                grup[sutunlar]
+                .interpolate(method="linear", limit_direction="both")
+                .bfill()
+                .ffill()
+            )
+            parcalar.append(grup)
+        df = pd.concat(parcalar).sort_index()
+    else:
+        df[sutunlar] = df[sutunlar].ffill().bfill()
     return df
 
 
@@ -69,7 +91,7 @@ def skab_yukle(cfg) -> HamVeri:
     df = pd.concat(parcalar, ignore_index=True)
     df[konf.hedef_sutun] = df[konf.hedef_sutun].astype(int)
     ozellikler = [s for s in df.columns if s not in konf.haric_sutunlar]
-    df = _eksikleri_doldur(df, ozellikler)
+    df = _eksikleri_doldur(df, ozellikler, konf.grup_sutunu)
     return HamVeri(konf.ad, df, ozellikler, konf.hedef_sutun, konf.grup_sutunu, konf.zaman_sutunu)
 
 

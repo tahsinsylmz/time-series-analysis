@@ -22,13 +22,16 @@ class OnIslemci:
         self.cfg = cfg
         self.scaler: StandardScaler | None = None
         self.pca: PCA | None = None
+        self.pc1_aciklanan_varyans: float | None = None   # PC1'in acikladigi varyans orani
 
     def fit(self, X_egitim: np.ndarray) -> "OnIslemci":
         self.scaler = StandardScaler().fit(X_egitim)
         if self.cfg.on_isleme.pca.aktif:
             olcekli = self.scaler.transform(X_egitim)
             n = self.cfg.on_isleme.pca.bilesen_sayisi
-            self.pca = PCA(n_components=n, random_state=0).fit(olcekli)
+            tohum = int(self.cfg.on_isleme.pca.tohum)
+            self.pca = PCA(n_components=n, random_state=tohum).fit(olcekli)
+            self.pc1_aciklanan_varyans = float(self.pca.explained_variance_ratio_[0])
         return self
 
     def olcekle(self, X: np.ndarray) -> np.ndarray:

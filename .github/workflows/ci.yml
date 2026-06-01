@@ -1,0 +1,29 @@
+name: CI
+
+# Her push ve pull request'te birim testleri calistirir.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bagimliliklari yukle
+        run: |
+          python -m pip install --upgrade pip
+          # CPU torch tekerlegi (CI'da CUDA yok)
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Birim testleri calistir
+        run: pytest -q

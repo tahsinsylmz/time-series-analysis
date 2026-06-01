@@ -57,12 +57,13 @@ class GRUAgi(nn.Module):
 class CNN1DAgi(nn.Module):
     """1B evrisimli ag: yerel zamansal oruntuleri yakalar."""
 
-    def __init__(self, ozellik_sayisi: int, gizli_boyut: int, dropout: float) -> None:
+    def __init__(self, ozellik_sayisi: int, gizli_boyut: int, dropout: float, cekirdek: int) -> None:
         super().__init__()
+        dolgu = cekirdek // 2   # dizi uzunlugunu koruyacak simetrik dolgu
         self.evrisim = nn.Sequential(
-            nn.Conv1d(ozellik_sayisi, gizli_boyut, kernel_size=3, padding=1),
+            nn.Conv1d(ozellik_sayisi, gizli_boyut, kernel_size=cekirdek, padding=dolgu),
             nn.ReLU(),
-            nn.Conv1d(gizli_boyut, gizli_boyut, kernel_size=3, padding=1),
+            nn.Conv1d(gizli_boyut, gizli_boyut, kernel_size=cekirdek, padding=dolgu),
             nn.ReLU(),
             nn.AdaptiveMaxPool1d(1),
         )
@@ -76,7 +77,8 @@ class CNN1DAgi(nn.Module):
         return self.cikis(self.dropout(ozet)).squeeze(-1)
 
 
-def ag_olustur(mimari: str, ozellik_sayisi: int, gizli_boyut: int, katman_sayisi: int, dropout: float) -> nn.Module:
+def ag_olustur(mimari: str, ozellik_sayisi: int, gizli_boyut: int, katman_sayisi: int,
+               dropout: float, cnn_cekirdek: int = 3) -> nn.Module:
     """Mimari adina gore uygun ag nesnesini uretir (fabrika)."""
     mimari = mimari.lower()
     if mimari == "lstm":
@@ -84,5 +86,5 @@ def ag_olustur(mimari: str, ozellik_sayisi: int, gizli_boyut: int, katman_sayisi
     if mimari == "gru":
         return GRUAgi(ozellik_sayisi, gizli_boyut, katman_sayisi, dropout)
     if mimari == "cnn1d":
-        return CNN1DAgi(ozellik_sayisi, gizli_boyut, dropout)
+        return CNN1DAgi(ozellik_sayisi, gizli_boyut, dropout, cnn_cekirdek)
     raise ValueError(f"Bilinmeyen mimari: {mimari}")

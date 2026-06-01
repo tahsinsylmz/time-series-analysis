@@ -16,6 +16,14 @@ from torch.utils.data import DataLoader
 from src.models.deep_learning.datasets import PencereVeriKumesi
 
 
+def _cihaz_sec(dc) -> torch.device:
+    """Config'teki istek uyarinca egitim/cikarim cihazini secer."""
+    istek = str(getattr(dc, "cihaz", "cpu")).lower()
+    if istek == "otomatik":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device(istek)
+
+
 def _pos_weight(etiketler: np.ndarray) -> float:
     """Pozitif sinif agirligi = negatif/pozitif (dengesizligi telafi eder)."""
     pozitif = int(etiketler.sum())
@@ -35,9 +43,11 @@ def egit_dongusu(
 ) -> nn.Module:
     """Agi egitir ve en iyi dogrulama agirliklariyla geri dondurur."""
     dc = cfg.derin_ogrenme
-    cihaz = torch.device("cpu")
+    cihaz = _cihaz_sec(dc)
     ag = ag.to(cihaz)
 
+    # Karistirma global torch RNG'sinden beslenir; seed_ayarla onu sabitledigi
+    # icin ayni tohumda sira tekrar uretilebilir kalir.
     yukleyici = DataLoader(
         PencereVeriKumesi(egitim_pencere, egitim_etiket),
         batch_size=dc.batch_boyutu,
@@ -87,7 +97,8 @@ def olasilik_uret(ag: nn.Module, pencereler: np.ndarray) -> np.ndarray:
     """Pencereler icin sigmoid anomali olasiligi dizisi uretir."""
     if len(pencereler) == 0:
         return np.empty(0, dtype=float)
+    cihaz = next(ag.parameters()).device
     ag.eval()
     with torch.no_grad():
-        logit = ag(torch.from_numpy(pencereler))
+        logit = ag(torch.from_numpy(pencereler).to(cihaz))
         return torch.sigmoid(logit).cpu().numpy().astype(float)

@@ -20,7 +20,7 @@ import os
 
 import numpy as np
 
-from src.experiments.scenarios import temiz_girdi
+from src.experiments.scenarios import kaydirilmis_girdi, temiz_girdi
 from src.explainability.explainer import OtomataAciklayici
 from src.models.automata.automata_model import OtomataAnomaliModeli
 from src.preprocessing.data_loader import veri_yukle
@@ -44,7 +44,9 @@ def _skab_ilk_fold(cfg):
     g_tr = temiz_girdi(on, ham.X[ytr], ham.y[ytr], ham.gruplar[ytr])
     g_val = temiz_girdi(on, ham.X[val], ham.y[val], ham.gruplar[val])
     g_test = temiz_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx])
-    return g_tr, g_val, g_test
+    faktor = float(cfg.senaryolar.unseen.olcek_faktoru)
+    g_unseen = kaydirilmis_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx], faktor)
+    return g_tr, g_val, g_test, g_unseen
 
 
 def _batadal_bolme(cfg):
@@ -56,7 +58,9 @@ def _batadal_bolme(cfg):
     seg = np.zeros(n, dtype=int)
     on = OnIslemci(cfg).fit(ham.X[tr])
     g = lambda idx: temiz_girdi(on, ham.X[idx], ham.y[idx], seg[idx])
-    return g(tr), g(val), g(test)
+    faktor = float(cfg.senaryolar.unseen.olcek_faktoru)
+    g_unseen = kaydirilmis_girdi(on, ham.X[test], ham.y[test], seg[test], faktor)
+    return g(tr), g(val), g(test), g_unseen
 
 
 def main() -> None:
@@ -69,13 +73,16 @@ def main() -> None:
     seed_ayarla(cfg.genel.rastgele_seedler[0])
 
     if args.veri == "skab":
-        g_tr, g_val, g_test = _skab_ilk_fold(cfg)
+        g_tr, g_val, g_test, g_unseen = _skab_ilk_fold(cfg)
     else:
-        g_tr, g_val, g_test = _batadal_bolme(cfg)
+        g_tr, g_val, g_test, g_unseen = _batadal_bolme(cfg)
 
     model = OtomataAnomaliModeli(cfg).egit(g_tr, g_val)
     aciklayici = OtomataAciklayici(model)
-    aciklamalar = aciklayici.en_anomalileri_acikla(g_test, k=args.k)
+    # Cesitli set: en anomalik noktalar + bir dogru-pozitif + bir guvenli normal
+    aciklamalar = aciklayici.secili_ornekler(g_test, k_anomali=args.k)
+    # Benzerlik tabanli ozet: unseen oruntu mesafeleri (kaydirilmis senaryoda anlamli)
+    mesafe_ozeti = aciklayici.unseen_mesafe_ozeti(g_unseen)
 
     cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini, "aciklamalar")
     os.makedirs(cikti, exist_ok=True)
@@ -84,17 +91,21 @@ def main() -> None:
             json.dump(ack, f, ensure_ascii=False, indent=2)
     with open(os.path.join(cikti, "ozet.json"), "w", encoding="utf-8") as f:
         json.dump(aciklamalar, f, ensure_ascii=False, indent=2)
+    with open(os.path.join(cikti, "unseen_mesafe_ozeti.json"), "w", encoding="utf-8") as f:
+        json.dump(mesafe_ozeti, f, ensure_ascii=False, indent=2)
 
+    kategoriler = ", ".join(sorted({a.get("kategori", "?") for a in aciklamalar}))
     print(f"{len(aciklamalar)} aciklama '{cikti}' dizinine yazildi "
-          f"(otomata durum sayisi={model.oto.K}, esik={model.esik:.3f}).\n")
+          f"(otomata durum sayisi={model.oto.K}, esik={model.esik:.3f}; "
+          f"kategoriler: {kategoriler}).\n")
     if aciklamalar:
         ilk = aciklamalar[0]
-        print("--- En anomalik nokta (ornek) ---")
+        print(f"--- Ornek nokta (kategori: {ilk.get('kategori', '?')}) ---")
         print(f"Konum       : {ilk['konum']}")
         print(f"Durum (SAX) : {ilk['durum_sax']}")
         print(f"Yol         : {' -> '.join(ilk['yol'])}")
         print(f"Skor / Esik : {ilk['anomali_skoru']:.3f} / {ilk['esik']:.3f}")
-        print(f"Karar       : {ilk['karar_metni']} (gercek etiket={ilk['gercek_etiket']})")
+        print(f"Karar       : {ilk['karar_metni']} (gercek etiket={ilk['teshis']['gercek_etiket']})")
         print(f"Aciklama    : {ilk['aciklama_metni']}")
 
 

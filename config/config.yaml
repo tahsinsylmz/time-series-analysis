@@ -1,9 +1,11 @@
 # ==========================================================================
 # MERKEZI KONFIGURASYON
 # --------------------------------------------------------------------------
-# Projedeki tum parametreler bu dosyadan yonetilir. Kaynak kodda hicbir
-# hard-coded sayisal deger yoktur. Bu dosyadaki bir parametre degistiginde
-# on isleme, modelleme ve deney pipeline'i otomatik olarak yeniden uretilir.
+# Projedeki tum ayarlanabilir parametreler bu dosyadan yonetilir; kaynak kodda
+# deney davranisini etkileyen hard-coded sayisal deger yoktur. (Tek istisna,
+# sifira bolmeyi onleyen 1e-8 / 1e-12 gibi matematiksel epsilon sabitleridir.)
+# Bu dosyadaki bir parametre degistiginde on isleme, modelleme ve deney
+# pipeline'i otomatik olarak yeniden uretilir.
 # ==========================================================================
 
 genel:
@@ -51,6 +53,7 @@ on_isleme:
     aktif: true
     bilesen_sayisi: 1                 # otomata tek boyut ister -> PC1
     sadece_otomata: true              # PCA cikti yalnizca otomata girdisinde kullanilir
+    tohum: 0                          # PCA cozumleyici icin tekrar uretilebilir tohum
 
 # --------------------------------------------------------------------------
 # Deney senaryolari (test aninda uygulanir: model temiz veriyle bir kez
@@ -61,6 +64,8 @@ senaryolar:
   gurultu:
     tip: "gaussian"
     std: 0.3                          # normalize edilmis veri uzerinde gurultu sapmasi
+    tohum_skab: 1000                  # SKAB gurultu RNG temeli (fold indeksi eklenir)
+    tohum_batadal: 2000               # BATADAL gurultu RNG tohumu
   unseen:
     aciklama: "Sensor kazanc kaymasi sonrasi egitim sozlugunde bulunmayan pattern noktalari"
     olcek_faktoru: 1.8                # normalize test sinyaline uygulanan genlik kaymasi (novelty)
@@ -81,6 +86,8 @@ derin_ogrenme:
   katman_sayisi: 1
   dropout: 0.2
   sinif_agirligi: true                # dengesiz veri icin sinif agirliklandirma
+  cnn_kernel: 3                       # 1B-CNN evrisim cekirdek boyutu (padding = cekirdek // 2)
+  cihaz: "cpu"                        # egitim/cikarim cihazi: "cpu" | "cuda" | "otomatik"
 
 # --------------------------------------------------------------------------
 # Olasiliksal otomata modeli (interpretable)
@@ -88,10 +95,12 @@ derin_ogrenme:
 otomata:
   window_size: 4                      # SABIT parametre (karsilastirma icin)
   alphabet_size: 3                    # SABIT parametre (karsilastirma icin)
-  paa_bolme_faktoru: 1                # PAA segment faktoru (1 = ham seri cozunurlugu)
+  paa_bolme_faktoru: 2                # ham pencere = window_size * faktor; faktor>1 -> PAA
+                                      # gercekten indirger (2 ham nokta -> 1 PAA segment)
   smoothing: "laplace"
   laplace_alpha: 1.0                  # gecis olasiliklari icin Laplace yumusatma
   path_uzunlugu: 2                    # path probability icin ardisik gecis sayisi
+  unseen_ceza_agirligi: 1.0           # sozluk-disi pattern cezasinin skora katki agirligi
   esik_stratejisi: "f1_maks"          # karar esigi: validation/train uzerinde F1 maksimize
   # Parametre duyarlilik analizi (Tablo 4) icin taranan degerler:
   parametre_taramasi:
@@ -104,4 +113,6 @@ otomata:
 degerlendirme:
   metrikler: ["accuracy", "precision", "recall", "f1"]
   pozitif_sinif: 1                    # anomali = pozitif sinif
+  esik_aday_sayisi: 200               # F1-maksimize esik aramasinda taranan aday sayisi
+  tek_sinif_esik_persentili: 0.95     # val tek-sinifsa (anomalisiz) esik = skor persentili
   istatistik_testleri: ["wilcoxon", "mcnemar"]

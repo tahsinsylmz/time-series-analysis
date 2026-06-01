@@ -1,0 +1,113 @@
+genel:
+  cikti_dizini: results
+  rastgele_seedler:
+  - 42
+  - 123
+  - 2026
+  - 7
+  - 999
+veri_setleri:
+  skab:
+    ad: SKAB
+    kok_dizin: data/SKAB
+    klasorler:
+    - valve1
+    - valve2
+    ayrac: ;
+    zaman_sutunu: datetime
+    hedef_sutun: anomaly
+    haric_sutunlar:
+    - datetime
+    - anomaly
+    - changepoint
+    - source_group
+    - source_file
+    grup_sutunu: source_file
+    bolme: group_kfold
+    fold_sayisi: 5
+    fold_tohumu: 42
+    dogrulama_orani: 0.2
+  batadal:
+    ad: BATADAL
+    dosya: data/BATADAL/BATADAL_dataset04.csv
+    zaman_sutunu: DATETIME
+    hedef_sutun: ATT_FLAG
+    pozitif_deger: 1
+    haric_sutunlar:
+    - DATETIME
+    - ATT_FLAG
+    bolme: zaman_sirali
+    egitim_orani: 0.6
+    dogrulama_orani: 0.2
+    test_orani: 0.2
+on_isleme:
+  normalizasyon: standard
+  eksik_veri_doldurma: interpolate
+  pca:
+    aktif: true
+    bilesen_sayisi: 1
+    sadece_otomata: true
+    tohum: 0
+senaryolar:
+  liste:
+  - orijinal
+  - gurultu
+  - unseen
+  gurultu:
+    tip: gaussian
+    std: 0.3
+    tohum_skab: 1000
+    tohum_batadal: 2000
+  unseen:
+    aciklama: Sensor kazanc kaymasi sonrasi egitim sozlugunde bulunmayan pattern noktalari
+    olcek_faktoru: 1.8
+derin_ogrenme:
+  modeller:
+  - lstm
+  - gru
+  - cnn1d
+  dizi_uzunlugu: 30
+  adim: 3
+  etiket_stratejisi: son_adim
+  epoch: 50
+  batch_boyutu: 32
+  ogrenme_orani: 0.001
+  early_stopping_sabri: 5
+  gizli_boyut: 48
+  katman_sayisi: 1
+  dropout: 0.2
+  sinif_agirligi: true
+  cnn_kernel: 3
+  cihaz: cpu
+otomata:
+  window_size: 4
+  alphabet_size: 3
+  paa_bolme_faktoru: 2
+  smoothing: laplace
+  laplace_alpha: 1.0
+  path_uzunlugu: 2
+  unseen_ceza_agirligi: 1.0
+  esik_stratejisi: f1_maks
+  parametre_taramasi:
+    window_size:
+    - 3
+    - 4
+    - 5
+    - 6
+    alphabet_size:
+    - 3
+    - 4
+    - 5
+    - 6
+degerlendirme:
+  metrikler:
+  - accuracy
+  - precision
+  - recall
+  - f1
+  pozitif_sinif: 1
+  esik_aday_sayisi: 200
+  tek_sinif_esik_persentili: 0.95
+  istatistik_testleri:
+  - wilcoxon
+  - mcnemar

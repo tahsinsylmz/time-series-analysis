@@ -1,54 +1,80 @@
 {
-  "konum": 3400,
+  "konum": 4465,
   "ham_pencere_normalize": [
-    0.1954,
-    0.1571,
-    0.4492,
-    -0.0028
+    -0.3086,
+    -0.3626,
+    -0.5459,
+    -0.1903,
+    -0.4472,
+    -0.4688,
+    -0.2746,
+    -0.6162
   ],
   "paa": [
-    0.1954,
-    0.1571,
-    0.4492,
-    -0.0028
+    -0.3356,
+    -0.3681,
+    -0.458,
+    -0.4454
   ],
-  "durum_sax": "bbcb",
+  "durum_sax": "bbaa",
+  "status": "seen",
+  "mapped_to": "bbaa",
   "yol": [
+    "abba",
     "aabb",
-    "abbc",
-    "bbcb"
+    "bbaa"
   ],
   "gecisler": [
     {
-      "kaynak_pattern": "aabb",
-      "hedef_pattern": "abbc",
-      "etkin_kaynak": "aabb",
-      "etkin_hedef": "abbc",
-      "gecis_olasiligi": 0.003436426116838488,
+      "kaynak_pattern": "abba",
+      "hedef_pattern": "aabb",
+      "etkin_kaynak": "abba",
+      "etkin_hedef": "aabb",
+      "gecis_olasiligi": 0.0111731843575419,
       "hedef_unseen": false,
-      "en_yakin_pattern": "abbc",
+      "en_yakin_pattern": "aabb",
       "levenshtein_mesafe": 0
     },
     {
-      "kaynak_pattern": "abbc",
-      "hedef_pattern": "bbcb",
-      "etkin_kaynak": "abbc",
-      "etkin_hedef": "bbcb",
-      "gecis_olasiligi": 0.05172413793103448,
+      "kaynak_pattern": "aabb",
+      "hedef_pattern": "bbaa",
+      "etkin_kaynak": "aabb",
+      "etkin_hedef": "bbaa",
+      "gecis_olasiligi": 0.0058823529411764705,
       "hedef_unseen": false,
-      "en_yakin_pattern": "bbcb",
+      "en_yakin_pattern": "bbaa",
       "levenshtein_mesafe": 0
     }
   ],
-  "path_olasiligi": 0.00017774617851232358,
-  "log_olasilik": -8.63515398873947,
+  "path_olasiligi": 6.572461388494899e-05,
+  "log_olasilik": -9.630037062071573,
   "unseen_ceza": 0.0,
-  "anomali_skoru": 8.63515398873947,
-  "esik": 0.2179144435569589,
+  "anomali_skoru": 9.630037062071573,
+  "esik": 0.12554728353741154,
   "karar": 1,
   "karar_metni": "ANOMALI",
-  "anomali_olasiligi": 0.9995,
-  "guven_skoru": 0.9991,
-  "gercek_etiket": 0,
-  "aciklama_metni": "Pencere sonu durumu 'bbcb'. Son 2 gecisin yol olasiligi 1.777e-04 (dusuk olasilik = beklenmedik gidisat). Toplam anomali skoru 8.64, esik (0.22) degerini astigi icin karar: ANOMALI (guven 1.00)."
+  "anomali_olasiligi": 0.9665,
+  "guven_skoru": 0.9331,
+  "spec_formati": {
+    "time_step": 4465,
+    "state": "aabb",
+    "pattern": "bbaa",
+    "status": "seen",
+    "mapped_to": "bbaa",
+    "probability": 6.6e-05,
+    "decision": "anomaly"
+  },
+  "karsit_durum": {
+    "en_beklenen_oruntu": "aabb",
+    "en_beklenen_gecis_olasiligi": 0.217647,
+    "karsit_skor": 6.0191,
+    "karsit_karar_metni": "ANOMALI",
+    "karar_degisir_mi": false
+  },
+  "teshis": {
+    "gercek_etiket": 0,
+    "karar_dogru": false
+  },
+  "aciklama_metni": "Pencere sonu durumu 'bbaa'. Son 2 gecisin yol olasiligi 6.572e-05 (dusuk olasilik = beklenmedik gidisat). Toplam anomali skoru 9.63, esik (0.13) degerini astigi icin karar: ANOMALI (guven 0.93).",
+  "kategori": "en_anomalik"
 }

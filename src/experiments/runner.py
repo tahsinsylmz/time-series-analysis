@@ -16,6 +16,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import yaml
 
 from src.experiments.metrics import ikili_metrikler
 from src.experiments.scenarios import gurultulu_girdi, kaydirilmis_girdi, temiz_girdi
@@ -41,6 +42,8 @@ class DeneyYoneticisi:
         self.seeds = list(cfg.genel.rastgele_seedler)
         self.senaryolar = list(cfg.senaryolar.liste)
         self.gurultu_std = float(cfg.senaryolar.gurultu.std)
+        self.gurultu_tohum_skab = int(cfg.senaryolar.gurultu.tohum_skab)
+        self.gurultu_tohum_batadal = int(cfg.senaryolar.gurultu.tohum_batadal)
         self.unseen_faktor = float(cfg.senaryolar.unseen.olcek_faktoru)
         self.dl_modeller = list(cfg.derin_ogrenme.modeller)
         self.cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini)
@@ -107,7 +110,7 @@ class DeneyYoneticisi:
             g_tr = temiz_girdi(on, ham.X[ytr], ham.y[ytr], ham.gruplar[ytr])
             g_val = temiz_girdi(on, ham.X[val], ham.y[val], ham.gruplar[val])
             g_test = temiz_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx])
-            rng = np.random.default_rng(1000 + fold_i)
+            rng = np.random.default_rng(self.gurultu_tohum_skab + fold_i)
             g_gurultu = gurultulu_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx],
                                         self.gurultu_std, rng)
             g_unseen = kaydirilmis_girdi(on, ham.X[test_idx], ham.y[test_idx], ham.gruplar[test_idx],
@@ -162,7 +165,7 @@ class DeneyYoneticisi:
             return temiz_girdi(on, ham.X[idx], ham.y[idx], seg[idx])
 
         g_tr, g_val, g_test = g(tr), g(val), g(test)
-        rng = np.random.default_rng(2000)
+        rng = np.random.default_rng(self.gurultu_tohum_batadal)
         g_gurultu = gurultulu_girdi(on, ham.X[test], ham.y[test], seg[test], self.gurultu_std, rng)
         g_unseen = kaydirilmis_girdi(on, ham.X[test], ham.y[test], seg[test], self.unseen_faktor)
 
@@ -226,6 +229,8 @@ class DeneyYoneticisi:
         for w in ws:
             for a in as_:
                 f1ler = []
+                durumlar = []      # her fold icin otomata durum (state) sayisi
+                yogunluklar = []   # her fold icin gecis yogunlugu (gozlenen/olasi gecis)
                 for tr_idx, test_idx in foldlar:
                     ytr, val = grup_train_val_bol(tr_idx, ham.gruplar, sk.dogrulama_orani, sk.fold_tohumu)
                     on = OnIslemci(cfg).fit(ham.X[ytr])
@@ -235,14 +240,23 @@ class DeneyYoneticisi:
                     model = OtomataAnomaliModeli(cfg, window_size=w, alphabet_size=a).egit(g_tr, g_val)
                     m, _, _, _ = self._degerlendir(model, g_test)
                     f1ler.append(m["f1"])
+                    durumlar.append(model.oto.K)
+                    yogunluklar.append(model.oto.gecis_yogunlugu())
                 kayitlar.append({"window_size": w, "alphabet_size": a,
-                                 "f1_ortalama": float(np.mean(f1ler)), "f1_std": float(np.std(f1ler))})
-                print(f"  [tarama] w={w} a={a} F1={np.mean(f1ler):.3f}")
+                                 "f1_ortalama": float(np.mean(f1ler)), "f1_std": float(np.std(f1ler)),
+                                 "state_sayisi": float(np.mean(durumlar)),
+                                 "gecis_yogunlugu": float(np.mean(yogunluklar))})
+                print(f"  [tarama] w={w} a={a} F1={np.mean(f1ler):.3f} "
+                      f"durum={np.mean(durumlar):.1f} yogunluk={np.mean(yogunluklar):.3f}")
         return kayitlar
 
     # ---- ozet ve istatistik ----
     def _ozetle(self, df: pd.DataFrame) -> pd.DataFrame:
         olcut = ["accuracy", "precision", "recall", "f1"]
+        # roc_auc/pr_auc yalniz iki sinifli satirlarda uretilir; varsa ozete eklenir
+        for ek in ("roc_auc", "pr_auc"):
+            if ek in df.columns:
+                olcut.append(ek)
         ozet = (df.groupby(["veri_seti", "model", "senaryo"])[olcut]
                 .agg(["mean", "std"]).reset_index())
         ozet.columns = ["_".join(c).rstrip("_") for c in ozet.columns]
@@ -263,10 +277,21 @@ class DeneyYoneticisi:
             sonuclar.append(s)
         return sonuclar
 
+    def _config_anlik_goruntu(self) -> None:
+        """Kullanilan tum parametreleri deney takibi icin diske yazar (VIII.A).
+
+        Tek bir merkezi config butun deneyleri urettiginden, bu anlik goruntu
+        her deneyin parametre kaydini olusturur (tekrar uretilebilirlik).
+        """
+        yol = os.path.join(self.cikti, "kullanilan_config.yaml")
+        with open(yol, "w", encoding="utf-8") as dosya:
+            yaml.safe_dump(self.cfg.ham, dosya, allow_unicode=True, sort_keys=False)
+
     # ---- ana akis ----
     def calistir(self, hizli: bool = False, tarama: bool = True) -> dict:
         fold_limit = 1 if hizli else None
         seed_limit = 1 if hizli else None
+        self._config_anlik_goruntu()
         print("== SKAB deneyleri ==")
         skab_kayit, skab_mcnemar = self.skab_calistir(fold_limit, seed_limit)
         print("== BATADAL deneyleri ==")
