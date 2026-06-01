@@ -95,7 +95,8 @@ derin_ogrenme:
 otomata:
   window_size: 4                      # SABIT parametre (karsilastirma icin)
   alphabet_size: 3                    # SABIT parametre (karsilastirma icin)
-  paa_bolme_faktoru: 1                # PAA segment faktoru (1 = ham seri cozunurlugu)
+  paa_bolme_faktoru: 2                # ham pencere = window_size * faktor; faktor>1 -> PAA
+                                      # gercekten indirger (2 ham nokta -> 1 PAA segment)
   smoothing: "laplace"
   laplace_alpha: 1.0                  # gecis olasiliklari icin Laplace yumusatma
   path_uzunlugu: 2                    # path probability icin ardisik gecis sayisi
