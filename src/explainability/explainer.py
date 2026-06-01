@@ -57,6 +57,32 @@ class OtomataAciklayici:
         p = 1.0 / (1.0 + np.exp(-z))
         return float(p), float(abs(2.0 * p - 1.0))
 
+    def _karsit_durum(self, kelimeler: list[str], t: int, karar: int) -> dict:
+        """Karsit durum analizi (X.D, ek-puan): son gecisin hedef oruntusu, kaynaktan
+        EN OLASI (en beklenen) oruntu olsaydi skor/karar nasil degisirdi.
+
+        Boylece "hangi oruntu gorulseydi NORMAL olurdu" sorusu yanitlanir.
+        """
+        oto = self.model.oto
+        kaynak = oto.pattern_coz(kelimeler[t - 1])[0]
+        # Kaynaktan en yuksek gecis olasiligina sahip (en beklenen) bilinen oruntu
+        en_olasi, en_p = kaynak, -1.0
+        for durum in oto.durumlar:
+            p = oto.gecis_olasiligi(kaynak, durum)
+            if p > en_p:
+                en_p, en_olasi = p, durum
+        alt = list(kelimeler)
+        alt[t] = en_olasi
+        alt_bilgi = self.model._yol_bilgisi(alt, t)
+        alt_karar = int(alt_bilgi["skor"] >= self.model.esik)
+        return {
+            "en_beklenen_oruntu": en_olasi,
+            "en_beklenen_gecis_olasiligi": round(float(en_p), 6),
+            "karsit_skor": round(float(alt_bilgi["skor"]), 4),
+            "karsit_karar_metni": "ANOMALI" if alt_karar else "NORMAL",
+            "karar_degisir_mi": bool(alt_karar != karar),
+        }
+
     def _metin(self, durum, bilgi, skor, karar, guven) -> str:
         unseen_gecisler = [g for g in bilgi["gecisler"] if g["hedef_unseen"]]
         parcalar = [
@@ -129,6 +155,7 @@ class OtomataAciklayici:
             "anomali_olasiligi": round(anomali_olasiligi, 4),
             "guven_skoru": round(guven, 4),
             "spec_formati": spec_formati,
+            "karsit_durum": self._karsit_durum(kelimeler, t, karar),
             # Yer-gercegi aciklamanin PARCASI degildir; ayri teshis alaninda tutulur
             # (aciklama yalnizca modelin ic hesaplamalarina dayanir).
             "teshis": {"gercek_etiket": gercek, "karar_dogru": bool(karar == gercek)},
@@ -181,6 +208,9 @@ class OtomataAciklayici:
             ekle(int(tn[np.argmin(skorlar[tn])]), "normal")
         else:
             ekle(int(np.argmin(skorlar)), "en_dusuk_skor")
+        # 4) Sinirda (dusuk guven) ornek: skoru esige EN YAKIN nokta -> karar guveni dusuk
+        #    (boylece aciklamalar guven skorunda cesitlilik gosterir).
+        ekle(int(np.argmin(np.abs(skorlar - self.model.esik))), "sinirda")
 
         sonuc = []
         for idx, kategori in secili:
@@ -188,3 +218,31 @@ class OtomataAciklayici:
             ack["kategori"] = kategori
             sonuc.append(ack)
         return sonuc
+
+    # ---- benzerlik tabanli ozet (X.D, ek-puan) ----
+    def unseen_mesafe_ozeti(self, veri: ModelGirdisi) -> dict:
+        """Sozluk-disi (unseen) oruntulerin en yakin bilinene Levenshtein mesafe ozeti.
+
+        Ister X.D "Benzerlik Tabanli Aciklama": unseen pattern'larin en yakin
+        pattern'lara mesafelerinin raporlanmasi.
+        """
+        L = self.model.ham_pencere
+        mesafeler: list[int] = []
+        for bas, son in bitisik_bloklar(veri.segmentler):
+            seri = self.model._normalize(veri.pc1[bas:son])
+            kelimeler = self.model._segment_kelimeleri(seri)
+            for t in range(self.model.path_uzunlugu, len(kelimeler)):
+                coz = self.model.oto.pattern_coz(kelimeler[t])
+                if coz[1]:  # unseen
+                    mesafeler.append(int(coz[3]))
+        if not mesafeler:
+            return {"unseen_sayisi": 0, "ortalama_mesafe": 0.0, "maks_mesafe": 0,
+                    "mesafe_dagilimi": {}}
+        m = np.asarray(mesafeler)
+        benzersiz, sayim = np.unique(m, return_counts=True)
+        return {
+            "unseen_sayisi": int(m.size),
+            "ortalama_mesafe": round(float(m.mean()), 4),
+            "maks_mesafe": int(m.max()),
+            "mesafe_dagilimi": {int(k): int(v) for k, v in zip(benzersiz, sayim)},
+        }
