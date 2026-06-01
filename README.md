@@ -116,40 +116,43 @@ bir güven skoru. Örnek için: `python -m scripts.demo_explain`
 
 | Model | Accuracy | Precision | Recall | F1 |
 |-------|---------:|----------:|-------:|---:|
-| Otomata | 0,382 | 0,357 | **0,953** | 0,519 ± 0,009 |
-| LSTM | 0,897 | 0,901 | 0,817 | 0,847 ± 0,051 |
-| GRU | 0,914 | 0,936 | 0,827 | **0,870 ± 0,059** |
-| 1D-CNN | 0,907 | 0,934 | 0,808 | 0,859 ± 0,051 |
+| Otomata | 0,372 | 0,356 | **0,972** | 0,521 ± 0,009 |
+| LSTM | 0,916 | 0,940 | 0,828 | 0,875 ± 0,054 |
+| GRU | 0,916 | 0,944 | 0,825 | 0,874 ± 0,056 |
+| 1D-CNN | 0,921 | 0,950 | 0,831 | **0,882 ± 0,048** |
 
 **BATADAL**
 
 | Model | Accuracy | Precision | Recall | F1 |
 |-------|---------:|----------:|-------:|---:|
-| Otomata | 0,813 | 0,048 | 0,050 | **0,049** |
-| LSTM | 0,892 | 0,062 | 0,030 | 0,040 ± 0,089 |
-| GRU | 0,877 | 0,065 | 0,037 | 0,047 ± 0,068 |
+| Otomata | 0,782 | 0,083 | 0,125 | **0,100** |
+| LSTM | 0,892 | 0,062 | 0,030 | 0,040 ± 0,080 |
+| GRU | 0,877 | 0,065 | 0,037 | 0,047 ± 0,061 |
 | 1D-CNN | 0,888 | 0,000 | 0,000 | 0,000 ± 0,000 |
 
 ![Model F1 karşılaştırması](results/figurler/fig_f1_karsilastirma.png)
 
-- SKAB'da derin öğrenme açık ara önde (F1 ≈ 0,85–0,87 vs otomata 0,52). Otomata
-  **yüksek recall (0,95) – düşük precision (0,36)** profiline sahip: anomalilerin
+- SKAB'da derin öğrenme açık ara önde (F1 ≈ 0,87–0,88 vs otomata 0,52). Otomata
+  **yüksek recall (0,97) – düşük precision (0,36)** profiline sahip: anomalilerin
   neredeyse tümünü yakalar ama çok yanlış alarm üretir.
 - BATADAL herkes için zordur (küçük, çok dengesiz, eğitim/test dağılımı farklı).
   **1D-CNN F1 = 0'a düşer (seçilen eşikle hiç anomali işaretlemez)**; üstelik
   `roc_auc ≈ 0,05` (5 tohum ort.) salt çoğunluk-sınıfı çöküşünden (≈ 0,50)
   belirgin biçimde düşüktür — yani skorlar **sistematik olarak ters sıralanmış**:
   ağ gerçek anomalilere düşük skor verir (dağılım kayması altında dejenere eğitim).
-  Otomata (F1 = 0,049) ve GRU (0,047) benzer düzeyde düşük kalır.
+  İlginç biçimde **otomata BATADAL orijinal senaryosunda en yüksek F1'e (0,100)
+  sahiptir** (GRU 0,047, LSTM 0,040, 1D-CNN 0,000) — beyaz kutu model bu küçük ve
+  dengesiz veride az da olsa gerçek anomali yakalar. (ROC-AUC'de ise LSTM/GRU
+  0,76–0,79 ile öndedir; yani sıralama iyi fakat tek eşikle F1'e dönüşmüyor.)
 
 ### 5.2 Dayanıklılık (senaryolar arası F1)
 
 | Veri | Model | Orijinal | Gürültü | Unseen |
 |------|-------|---------:|--------:|-------:|
-| SKAB | Otomata | 0,519 | 0,522 | 0,513 |
-| SKAB | GRU | 0,870 | 0,842 | 0,863 |
-| SKAB | 1D-CNN | 0,859 | 0,833 | 0,860 |
-| BATADAL | Otomata | 0,049 | 0,101 | **0,130** |
+| SKAB | Otomata | 0,521 | 0,522 | 0,512 |
+| SKAB | GRU | 0,874 | 0,859 | 0,877 |
+| SKAB | 1D-CNN | 0,882 | 0,862 | 0,878 |
+| BATADAL | Otomata | **0,100** | 0,159 | **0,122** |
 | BATADAL | 1D-CNN | 0,000 | 0,000 | 0,000 |
 
 ![Senaryo dayanıklılığı](results/figurler/fig_senaryo_dayaniklilik.png)
@@ -157,13 +160,23 @@ bir güven skoru. Örnek için: `python -m scripts.demo_explain`
 - Otomatanın F1'i gürültü ve dağılım kayması altında neredeyse **sabit** kalır
   (SKAB'da 0,51–0,52). Bu, frekans tabanlı örüntü modelinin küçük bozulmalara
   dayanıklı olduğunu gösterir.
-- BATADAL'da `unseen` senaryosunda **otomata tüm modeller arasında en iyidir
-  (0,130)** — görülmemiş örüntüleri Levenshtein ile ele alma yeteneği burada işe yarar.
+- BATADAL'da otomata hem orijinal (0,100) hem `unseen` (0,122) senaryosunda **tüm
+  modeller arasında en iyidir** — görülmemiş örüntüleri Levenshtein ile ele alma
+  yeteneği bu küçük/dengesiz veride işe yarar.
 
 ### 5.3 Parametre Duyarlılığı (otomata, SKAB)
 
 Pencere boyutu × alfabe boyutu taraması; en iyi sonuç **alfabe = 3** sütununda
-toplanır (window 3–6 arası F1 ≈ 0,518–0,520; pratikte stabil).
+toplanır (window 3–6 arası F1 ≈ 0,519–0,523; pratikte stabil). Figürde üç metrik
+birlikte gösterilir: **F1**, **durum sayısı** ve **geçiş yoğunluğu**.
+
+- **Durum sayısı**, pencere ve alfabe boyutu büyüdükçe hızla artar (w=3,a=3'te
+  ≈ 18 durumdan w=6,a=6'da ≈ 1157 duruma): daha uzun/zengin örüntüler daha çok
+  benzersiz SAX kelimesi üretir.
+- **Geçiş yoğunluğu** (gözlenen geçişlerin olası geçişlere oranı) ters yönde,
+  ≈ 0,43'ten ≈ 0,004'e düşer: durum uzayı büyüdükçe geçiş matrisi **seyrekleşir**.
+- F1 ise bu değişime büyük ölçüde **duyarsız** kalır (≈ 0,52); model karmaşıklığını
+  artırmak SKAB'da doğruluğu iyileştirmez — sadelik lehine bir bulgu.
 
 ![Parametre duyarlılığı](results/figurler/fig_parametre_duyarlilik.png)
 
@@ -172,15 +185,20 @@ toplanır (window 3–6 arası F1 ≈ 0,518–0,520; pratikte stabil).
 - **Wilcoxon (SKAB, kat bazlı F1):** otomata vs LSTM/GRU/1D-CNN için p = 0,0625
   (n = 5; bu, 5 katta tutarlı yönlü farkın ulaşabileceği en küçük p değeridir).
   Derin öğrenme tüm katlarda otomatadan yüksektir.
-- **McNemar (SKAB, otomata vs 1D-CNN):** istatistik = 3061,8, p ≈ 0; yalnız
-  otomatanın doğru olduğu 508 nokta, yalnız 1D-CNN'in doğru olduğu 4376 nokta —
+- **McNemar (SKAB, otomata vs 1D-CNN):** istatistik = 3296,4, p ≈ 0; yalnız
+  otomatanın doğru olduğu 415 nokta, yalnız 1D-CNN'in doğru olduğu 4400 nokta —
   SKAB'da derin öğrenme net üstün.
-- **McNemar (BATADAL):** istatistik = 21,3, p = 3,9·10⁻⁶. Burada ham *doğruluk*
+- **McNemar (BATADAL):** istatistik = 25,3, p = 4,9·10⁻⁷. Burada ham *doğruluk*
   her şeye "normal" diyen 1D-CNN'i kayırır; oysa F1 otomatanın az da olsa gerçek
   anomali yakaladığını, 1D-CNN'in hiç yakalamadığını gösterir. **Dengesiz veride
   accuracy yanıltıcıdır; asıl ölçüt F1/PR'dir.**
 
 ![Karmaşıklık matrisi](results/figurler/fig_karmasiklik_matrisi.png)
+
+SKAB'da en iyi derin öğrenme modelinin (GRU) ROC ve Precision-Recall eğrileri
+(ROC-AUC ≈ 0,93); eşikten bağımsız sıralama başarısını gösterir:
+
+![ROC ve PR eğrileri](results/figurler/fig_roc_pr.png)
 
 ## 6. Açıklanabilirlik Örneği
 
