@@ -16,6 +16,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import yaml
 
 from src.experiments.metrics import ikili_metrikler
 from src.experiments.scenarios import gurultulu_girdi, kaydirilmis_girdi, temiz_girdi
@@ -272,10 +273,21 @@ class DeneyYoneticisi:
             sonuclar.append(s)
         return sonuclar
 
+    def _config_anlik_goruntu(self) -> None:
+        """Kullanilan tum parametreleri deney takibi icin diske yazar (VIII.A).
+
+        Tek bir merkezi config butun deneyleri urettiginden, bu anlik goruntu
+        her deneyin parametre kaydini olusturur (tekrar uretilebilirlik).
+        """
+        yol = os.path.join(self.cikti, "kullanilan_config.yaml")
+        with open(yol, "w", encoding="utf-8") as dosya:
+            yaml.safe_dump(self.cfg.ham, dosya, allow_unicode=True, sort_keys=False)
+
     # ---- ana akis ----
     def calistir(self, hizli: bool = False, tarama: bool = True) -> dict:
         fold_limit = 1 if hizli else None
         seed_limit = 1 if hizli else None
+        self._config_anlik_goruntu()
         print("== SKAB deneyleri ==")
         skab_kayit, skab_mcnemar = self.skab_calistir(fold_limit, seed_limit)
         print("== BATADAL deneyleri ==")
