@@ -1,8 +1,16 @@
 """SAX - Symbolic Aggregate approXimation.
 
-PAA ile indirgenmis (ve z-normalize edilmis) degerleri, Gauss dagiliminin
-esit olasilikli bolgelerine karsilik gelen kesim noktalarini kullanarak
-sembollere (harflere) cevirir. ``alphabet_size`` kadar farkli harf uretilir.
+PAA ile indirgenmis degerleri, Gauss dagiliminin esit olasilikli bolgelerine
+karsilik gelen kesim noktalarini kullanarak sembollere (harflere) cevirir.
+``alphabet_size`` kadar farkli harf uretilir.
+
+Not (z-normalizasyon tercihi): Klasik SAX her alt-diziyi (pencereyi) ayri ayri
+z-normalize eder; boylece yalnizca SEKIL korunur, mutlak seviye silinir. Bu
+projede z-normalizasyon bunun yerine egitim istatistikleriyle GLOBAL yapilir
+(bkz. ``OtomataAnomaliModeli._normalize``). Boylece pencerelerin mutlak seviyesi
+korunur; bu, anomalilerin cogunlukla seviye/genlik sapmasi oldugu bu veri
+setlerinde kasitli bir tercihtir (ampirik olarak pencere-bazli z-norm ile F1
+ayni, fakat global yaklasim daha az durum/daha sade bir otomata uretir).
 """
 from __future__ import annotations
 

@@ -60,6 +60,9 @@ class OtomataAnomaliModeli(AnomaliModeli):
         return kelimeler
 
     def _normalize(self, pc1: np.ndarray) -> np.ndarray:
+        # GLOBAL z-normalizasyon (egitim mu/sd ile). Klasik SAX'in pencere-bazli
+        # z-norm'unun aksine pencerelerin mutlak seviyesini korur; seviye/genlik
+        # sapmasi olan anomaliler icin kasitli tercih (bkz. sax.py docstring).
         return (pc1 - self.pc1_mu) / self.pc1_sd
 
     # ---- egitim ----

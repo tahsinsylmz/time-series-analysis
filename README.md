@@ -60,6 +60,9 @@ PC1 → z-normalizasyon → kayan pencere → PAA → SAX sembolizasyon
   Ham pencere uzunluğu `window_size × paa_bolme_faktoru`'dur; `paa_bolme_faktoru = 2` ile
   her PAA segmenti 2 ham örneğin ortalamasıdır (gürültüyü yumuşatır, durum sayısını azaltır).
 - **SAX** (Symbolic Aggregate approXimation): Gauss kesim noktalarıyla sembole çevirir.
+  z-normalizasyon klasik SAX'taki gibi pencere-bazlı değil, eğitim istatistikleriyle
+  **global** yapılır; böylece pencerelerin mutlak seviyesi korunur (anomaliler çoğunlukla
+  seviye/genlik sapması olduğundan kasıtlı tercih — pencere-bazlı z-norm ile F1 aynı çıkar).
 - Her benzersiz SAX örüntüsü bir **durum**; durumlar arası geçişler frekansla öğrenilir:
   `P(Sᵢ→Sⱼ) = (sayım + α) / (toplam_çıkış + α·|durumlar|)` (Laplace, α=1).
 - Bir örüntü dizisinin **yol olasılığı** ardışık geçiş olasılıklarının çarpımıdır;
