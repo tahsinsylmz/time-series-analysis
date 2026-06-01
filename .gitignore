@@ -10,6 +10,7 @@ results/*
 !results/ozet.csv
 !results/parametre_taramasi_skab.csv
 !results/istatistik_testleri.json
+!results/kullanilan_config.yaml
 
 # PDF metin ciktilari ve ders dokumanlari (repoya konmaz)
 yazlab2_v3-1.txt
