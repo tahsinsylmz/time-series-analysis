@@ -49,10 +49,15 @@ def test_esik_bos_girdi():
     assert f1_maksimize_esik(np.array([]), np.array([])) == 0.0
 
 
-def test_esik_tek_sinif_medyan_fallback():
+def test_esik_tek_sinif_persentil_fallback():
+    # Tek sinifli (anomalisiz) val -> medyan degil, yuksek persentil (guvenli) esik
     skor = np.array([1.0, 2.0, 3.0, 4.0])
-    y = np.zeros(4, dtype=int)            # tek sinif
-    assert f1_maksimize_esik(skor, y) == pytest.approx(np.median(skor))
+    y = np.zeros(4, dtype=int)
+    with pytest.warns(RuntimeWarning):
+        esik = f1_maksimize_esik(skor, y, tek_sinif_persentil=0.95)
+    assert esik == pytest.approx(np.quantile(skor, 0.95))
+    # medyandan kesinlikle daha yuksek (daha az nokta isaretler)
+    assert esik > np.median(skor)
 
 
 def test_esik_aday_sayisi_sinirlamasi():

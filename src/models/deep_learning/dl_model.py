@@ -32,6 +32,7 @@ class DerinOgrenmeModeli(AnomaliModeli):
         self.dropout = float(dc.dropout)
         self.cnn_kernel = int(dc.cnn_kernel)
         self.esik_aday_sayisi = int(cfg.degerlendirme.esik_aday_sayisi)
+        self.tek_sinif_persentil = float(cfg.degerlendirme.tek_sinif_esik_persentili)
         self.ag = None
         self.esik = 0.5
 
@@ -52,7 +53,8 @@ class DerinOgrenmeModeli(AnomaliModeli):
         # Karar esigi: dogrulama (yoksa egitim) olasiliklarinda F1 maksimize
         ref_pen, ref_et = (v_pen, v_et) if dogrulama is not None else (e_pen, e_et)
         ref_olasilik = olasilik_uret(self.ag, ref_pen)
-        self.esik = f1_maksimize_esik(ref_olasilik, ref_et, self.esik_aday_sayisi)
+        self.esik = f1_maksimize_esik(ref_olasilik, ref_et, self.esik_aday_sayisi,
+                                      self.tek_sinif_persentil)
         return self
 
     def skor(self, veri: ModelGirdisi) -> tuple[np.ndarray, np.ndarray]:
