@@ -228,6 +228,8 @@ class DeneyYoneticisi:
         for w in ws:
             for a in as_:
                 f1ler = []
+                durumlar = []      # her fold icin otomata durum (state) sayisi
+                yogunluklar = []   # her fold icin gecis yogunlugu (gozlenen/olasi gecis)
                 for tr_idx, test_idx in foldlar:
                     ytr, val = grup_train_val_bol(tr_idx, ham.gruplar, sk.dogrulama_orani, sk.fold_tohumu)
                     on = OnIslemci(cfg).fit(ham.X[ytr])
@@ -237,9 +239,14 @@ class DeneyYoneticisi:
                     model = OtomataAnomaliModeli(cfg, window_size=w, alphabet_size=a).egit(g_tr, g_val)
                     m, _, _, _ = self._degerlendir(model, g_test)
                     f1ler.append(m["f1"])
+                    durumlar.append(model.oto.K)
+                    yogunluklar.append(model.oto.gecis_yogunlugu())
                 kayitlar.append({"window_size": w, "alphabet_size": a,
-                                 "f1_ortalama": float(np.mean(f1ler)), "f1_std": float(np.std(f1ler))})
-                print(f"  [tarama] w={w} a={a} F1={np.mean(f1ler):.3f}")
+                                 "f1_ortalama": float(np.mean(f1ler)), "f1_std": float(np.std(f1ler)),
+                                 "state_sayisi": float(np.mean(durumlar)),
+                                 "gecis_yogunlugu": float(np.mean(yogunluklar))})
+                print(f"  [tarama] w={w} a={a} F1={np.mean(f1ler):.3f} "
+                      f"durum={np.mean(durumlar):.1f} yogunluk={np.mean(yogunluklar):.3f}")
         return kayitlar
 
     # ---- ozet ve istatistik ----
