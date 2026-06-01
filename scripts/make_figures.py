@@ -28,7 +28,14 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import (
+    auc,
+    average_precision_score,
+    confusion_matrix,
+    precision_recall_curve,
+    roc_auc_score,
+    roc_curve,
+)
 
 from src.experiments.scenarios import temiz_girdi
 from src.models.automata.automata_model import OtomataAnomaliModeli
@@ -98,17 +105,57 @@ def fig_senaryo_dayaniklilik(ozet, cikti):
     _kaydet(fig, cikti, "fig_senaryo_dayaniklilik.png")
 
 
-# ---- 3) parametre duyarliligi ----
+# ---- 3) parametre duyarliligi (3 eksen: F1 + durum sayisi + gecis yogunlugu) ----
 def fig_parametre_duyarlilik(tarama, cikti):
-    pivot = tarama.pivot(index="window_size", columns="alphabet_size", values="f1_ortalama")
-    fig, ax = plt.subplots(figsize=(6, 5))
-    sns.heatmap(pivot, annot=True, fmt=".3f", cmap="viridis", ax=ax,
-                cbar_kws={"label": "Ortalama F1"})
-    ax.set_title("Otomata parametre duyarliligi (SKAB)")
-    ax.set_xlabel("Alfabe boyutu")
-    ax.set_ylabel("Pencere boyutu")
+    paneller = [
+        ("f1_ortalama", "Ortalama F1", "viridis", ".3f"),
+        ("state_sayisi", "Durum sayisi", "rocket_r", ".0f"),
+        ("gecis_yogunlugu", "Gecis yogunlugu", "mako_r", ".3f"),
+    ]
+    mevcut = [p for p in paneller if p[0] in tarama.columns]
+    fig, eksenler = plt.subplots(1, len(mevcut), figsize=(5.2 * len(mevcut), 4.6))
+    if len(mevcut) == 1:
+        eksenler = [eksenler]
+    for ax, (sutun, baslik, cmap, bicim) in zip(eksenler, mevcut):
+        pivot = tarama.pivot(index="window_size", columns="alphabet_size", values=sutun)
+        sns.heatmap(pivot, annot=True, fmt=bicim, cmap=cmap, ax=ax,
+                    cbar_kws={"label": baslik})
+        ax.set_title(f"Otomata - {baslik} (SKAB)")
+        ax.set_xlabel("Alfabe boyutu")
+        ax.set_ylabel("Pencere boyutu")
     fig.tight_layout()
     _kaydet(fig, cikti, "fig_parametre_duyarlilik.png")
+
+
+# ---- ROC ve PR egrileri (SKAB, en iyi DL modeli) ----
+def fig_roc_pr(model, model_ad, g_test, cikti):
+    """Verilen DL modelinin SKAB test setindeki ROC ve PR egrilerini cizer."""
+    skorlar, konumlar = model.skor(g_test)
+    y = g_test.y[konumlar]
+    if len(np.unique(y)) < 2:
+        print("  atlandi: fig_roc_pr (tek sinif)")
+        return
+    fpr, tpr, _ = roc_curve(y, skorlar)
+    roc_auc = roc_auc_score(y, skorlar)
+    kesinlik, duyarlilik, _ = precision_recall_curve(y, skorlar)
+    pr_auc = average_precision_score(y, skorlar)
+    taban = float(np.mean(y))   # PR icin rastgele taban (pozitif orani)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.6))
+    etiket = MODEL_ETIKET.get(model_ad, model_ad)
+    ax1.plot(fpr, tpr, color=RENKLER.get(model_ad, "#30638e"), lw=2,
+             label=f"{etiket} (AUC = {roc_auc:.3f})")
+    ax1.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="Rastgele")
+    ax1.set_xlabel("Yanlis pozitif orani"); ax1.set_ylabel("Dogru pozitif orani")
+    ax1.set_title("ROC egrisi (SKAB)"); ax1.legend(loc="lower right", fontsize=9)
+    ax2.plot(duyarlilik, kesinlik, color=RENKLER.get(model_ad, "#00798c"), lw=2,
+             label=f"{etiket} (PR-AUC = {pr_auc:.3f})")
+    ax2.axhline(taban, ls="--", color="gray", lw=1, label=f"Taban (poz={taban:.2f})")
+    ax2.set_xlabel("Duyarlilik (recall)"); ax2.set_ylabel("Kesinlik (precision)")
+    ax2.set_title("Precision-Recall egrisi (SKAB)"); ax2.legend(loc="upper right", fontsize=9)
+    ax2.set_ylim(0, 1.02)
+    fig.tight_layout()
+    _kaydet(fig, cikti, "fig_roc_pr.png")
 
 
 # ---- SKAB ilk fold girdileri (3-6 icin) ----
@@ -209,6 +256,7 @@ def main() -> None:
     seed_ayarla(cfg.genel.rastgele_seedler[0])
     gru = DerinOgrenmeModeli(cfg, "gru").egit(g_tr, g_val)
     fig_karmasiklik_matrisi(auto, gru, "gru", g_test, cikti)
+    fig_roc_pr(gru, "gru", g_test, cikti)
 
     print(f"\nTum figurler '{cikti}' dizinine yazildi.")
 

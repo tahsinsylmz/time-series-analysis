@@ -253,6 +253,10 @@ class DeneyYoneticisi:
     # ---- ozet ve istatistik ----
     def _ozetle(self, df: pd.DataFrame) -> pd.DataFrame:
         olcut = ["accuracy", "precision", "recall", "f1"]
+        # roc_auc/pr_auc yalniz iki sinifli satirlarda uretilir; varsa ozete eklenir
+        for ek in ("roc_auc", "pr_auc"):
+            if ek in df.columns:
+                olcut.append(ek)
         ozet = (df.groupby(["veri_seti", "model", "senaryo"])[olcut]
                 .agg(["mean", "std"]).reset_index())
         ozet.columns = ["_".join(c).rstrip("_") for c in ozet.columns]
