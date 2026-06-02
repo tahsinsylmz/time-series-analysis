@@ -168,7 +168,8 @@ kayırır ve anlamlı yorumlanamaz. Bu nedenle istatistik çıktısında BATADAL
 kaydı `yorum_disi: true` bayrağıyla işaretlenir; çıkarımlar yalnızca SKAB McNemar'ı
 üzerinden yapılır. **Dengesiz veride doğruluk yanıltıcıdır; asıl ölçüt F1/PR'dir.**
 
-Görseller: karmaşıklık matrisi, ROC/PR eğrisi (`fig_roc_pr.png`, GRU ROC-AUC ≈ 0,93),
+Görseller: karmaşıklık matrisi, ROC/PR eğrisi (`fig_roc_pr.png`; metinde anılan GRU
+ROC-AUC ≈ 0,93 değeri 5 kat ortalaması, figürdeki eğri **SKAB fold-1** için AUC = 0,961),
 otomata durum geçiş diyagramı ve geçiş olasılık ısı haritası `results/figurler/`
 altındadır.
 

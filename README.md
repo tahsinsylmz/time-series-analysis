@@ -209,8 +209,11 @@ birlikte gösterilir: **F1**, **durum sayısı** ve **geçiş yoğunluğu**.
 
 ![Karmaşıklık matrisi](results/figurler/fig_karmasiklik_matrisi.png)
 
-SKAB'da en iyi derin öğrenme modelinin (GRU) ROC ve Precision-Recall eğrileri
-(ROC-AUC ≈ 0,93); eşikten bağımsız sıralama başarısını gösterir:
+SKAB'da en iyi derin öğrenme modelinin (GRU) ROC ve Precision-Recall eğrileri;
+eşikten bağımsız sıralama başarısını gösterir. Metin boyunca anılan **ROC-AUC ≈ 0,93**
+değeri 5 kat (fold) **ortalamasıdır**; aşağıdaki eğri ise tekrarlanabilirlik için tek bir
+kat üzerinde (**SKAB fold-1**) yeniden eğitilen modeldendir ve o kat için **AUC = 0,961**
+okur — fold-1'in ortalamanın hafif üstünde olması beklenen bir dalgalanmadır:
 
 ![ROC ve PR eğrileri](results/figurler/fig_roc_pr.png)
 
