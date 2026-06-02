@@ -34,6 +34,16 @@ yaklaşımı dürüst ve sızıntısız bir düzenekte karşılaştırır.
 
 Veriyi yerinde doğrulamak için: `python -m scripts.download_data`
 
+> **Kapsam notu — veri setleri arası transfer.** Bu çalışma SKAB ve BATADAL ile
+> sınırlandırılmıştır. Bir veri setinde eğitip diğerinde test eden çapraz veri seti
+> (cross-dataset) genellenebilirlik tablosu (SWAT/WADI gibi setlerle) kapsam dışıdır:
+> iki veri seti **farklı öznitelik uzaylarına** (SKAB 8 → PC1, BATADAL 43 → PC1) ve
+> **farklı etiket semantiğine** (`anomaly` vs `ATT_FLAG`) sahip olduğundan, öznitelikler
+> eşlenemez ve ortak bir transfer kurgusu tanımsızdır. Otomata eğitim bölmesine
+> uydurulan tek boyutlu (PC1) bir SAX/PAA sözlüğü ile çalışır; derin öğrenme modelleri
+> de girdi boyutuna bağlıdır; bu nedenle modeller doğrudan başka boyutlu bir sete
+> aktarılamaz. SWAT/WADI yalnızca biçim örneğidir, bu projede kullanılmamıştır.
+
 ## 3. Yöntem
 
 ### 3.1 Ön İşleme (sızıntı önleme)

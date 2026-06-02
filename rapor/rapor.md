@@ -113,6 +113,19 @@ küçük, çok dengesiz ve eğitim/test dağılımı farklı olduğundan bütün
 zordur. Beyaz kutu modelin BATADAL'da görece iyi durması, frekans tabanlı örüntü
 modelinin az veriyle de işleyebildiğini gösterir.
 
+**Kapsam notu (veri setleri arası transfer).** Bu çalışma SKAB ve BATADAL ile
+sınırlandırılmıştır; bir veri setinde eğitip diğerinde test eden çapraz veri seti
+(cross-dataset) genellenebilirlik analizi (ek istek listesindeki örnek Tablo 3,
+SWAT/WADI/BATADAL) kapsam dışıdır. Gerekçe: iki veri seti **farklı öznitelik
+uzaylarına** sahiptir (SKAB 8 öznitelik → PC1, BATADAL 43 öznitelik → PC1) ve
+öznitelikler fiziksel olarak eşlenemez; ayrıca **etiket semantiği** farklıdır (SKAB
+`anomaly`, BATADAL `ATT_FLAG`). Otomata tek boyutlu PC1 üzerinde eğitim bölmesine
+uydurulan bir SAX/PAA sözlüğü ve geçiş matrisi öğrendiğinden, farklı boyutlu ve
+farklı dağılımlı bir veri setine uygulanması tanımsızdır; derin öğrenme modelleri de
+girdi boyutuna bağlı olduğundan doğrudan aktarılamaz. Dolayısıyla ortak bir transfer
+kurgusu tanımlı olmadığından bu eksen analiz dışı bırakılmıştır (ek istek listesindeki
+SWAT/WADI yalnızca biçim örneğidir).
+
 ### 5.3 Gürültü ve Dağılım Kayması Etkisi
 
 Otomatanın F1'i gürültü ve kayma altında neredeyse sabittir (SKAB 0,521/0,522/0,512).
