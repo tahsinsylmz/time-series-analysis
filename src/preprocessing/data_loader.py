@@ -43,33 +43,48 @@ class HamVeri:
 
 
 def _eksikleri_doldur(
-    df: pd.DataFrame, sutunlar: list[str], grup_sutunu: str | None = None
+    df: pd.DataFrame,
+    sutunlar: list[str],
+    grup_sutunu: str | None = None,
+    strateji: str = "interpolate",
 ) -> pd.DataFrame:
     """Sensor sutunlarindaki eksik degerleri SIZINTI yapmadan doldurur.
+
+    ``strateji`` (config: on_isleme.eksik_veri_doldurma):
+      - ``interpolate`` : zaman sirali dogrusal interpolasyon (varsayilan).
+      - ``ffill``       : yalniz nedensel (ileri-yon) doldurma.
 
     - ``grup_sutunu`` verilirse (SKAB) doldurma yalnizca o grubun (dosyanin)
       icinde yapilir; dosya sinirlarini asmaz, boylece bir dosyanin degeri baska
       bir dosyaya (ve dolayisiyla baska bir fold'a) tasinmaz.
-    - ``grup_sutunu`` yoksa (BATADAL, zaman sirali) yalnizca nedensel (ileri-yon)
-      doldurma kullanilir; gelecekteki (test) degerler gecmise (train) tasinmaz.
-      Bastaki olasi bos degerler yalnizca dizinin en basinda (egitim bolgesi)
-      geri-doldurma ile kapatilir.
+    - ``grup_sutunu`` yoksa (BATADAL, zaman sirali) interpolasyon yalniz ileri-yon
+      uygulanir; gelecekteki (test) degerler gecmise (train) tasinmaz.
     """
+    strateji = str(strateji).lower()
+    if strateji not in ("interpolate", "ffill"):
+        raise ValueError(
+            "Bilinmeyen eksik veri doldurma stratejisi: "
+            f"{strateji!r}. Gecerli secenekler: ['interpolate', 'ffill']."
+        )
     df = df.copy()
+
+    def _doldur(blok: pd.DataFrame, iki_yon: bool) -> pd.DataFrame:
+        if strateji == "interpolate":
+            yon = "both" if iki_yon else "forward"
+            blok = blok.interpolate(method="linear", limit_direction=yon)
+        if iki_yon:
+            return blok.bfill().ffill()
+        return blok.ffill().bfill()
+
     if grup_sutunu is not None:
         parcalar = []
         for _, grup in df.groupby(grup_sutunu, sort=False):
             grup = grup.copy()
-            grup[sutunlar] = (
-                grup[sutunlar]
-                .interpolate(method="linear", limit_direction="both")
-                .bfill()
-                .ffill()
-            )
+            grup[sutunlar] = _doldur(grup[sutunlar], iki_yon=True)
             parcalar.append(grup)
         df = pd.concat(parcalar).sort_index()
     else:
-        df[sutunlar] = df[sutunlar].ffill().bfill()
+        df[sutunlar] = _doldur(df[sutunlar], iki_yon=False)
     return df
 
 
@@ -91,7 +106,7 @@ def skab_yukle(cfg) -> HamVeri:
     df = pd.concat(parcalar, ignore_index=True)
     df[konf.hedef_sutun] = df[konf.hedef_sutun].astype(int)
     ozellikler = [s for s in df.columns if s not in konf.haric_sutunlar]
-    df = _eksikleri_doldur(df, ozellikler, konf.grup_sutunu)
+    df = _eksikleri_doldur(df, ozellikler, konf.grup_sutunu, cfg.on_isleme.eksik_veri_doldurma)
     return HamVeri(konf.ad, df, ozellikler, konf.hedef_sutun, konf.grup_sutunu, konf.zaman_sutunu)
 
 
@@ -104,7 +119,7 @@ def batadal_yukle(cfg) -> HamVeri:
     # ATT_FLAG == 1 -> anomali (1), diger degerler (-999) -> normal (0)
     df[konf.hedef_sutun] = (df[konf.hedef_sutun] == konf.pozitif_deger).astype(int)
     ozellikler = [s for s in df.columns if s not in konf.haric_sutunlar]
-    df = _eksikleri_doldur(df, ozellikler)
+    df = _eksikleri_doldur(df, ozellikler, strateji=cfg.on_isleme.eksik_veri_doldurma)
     return HamVeri(konf.ad, df, ozellikler, konf.hedef_sutun, None, konf.zaman_sutunu)
 
 

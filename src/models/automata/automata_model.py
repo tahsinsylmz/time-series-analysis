@@ -37,6 +37,18 @@ class OtomataAnomaliModeli(AnomaliModeli):
         self.unseen_ceza_agirligi = float(oc.unseen_ceza_agirligi)
         self.esik_aday_sayisi = int(cfg.degerlendirme.esik_aday_sayisi)
         self.tek_sinif_persentil = float(cfg.degerlendirme.tek_sinif_esik_persentili)
+        self.smoothing = str(oc.smoothing).lower()
+        if self.smoothing != "laplace":
+            raise ValueError(
+                f"Desteklenmeyen smoothing stratejisi: {oc.smoothing!r} "
+                "(su an yalnizca 'laplace' uygulanmaktadir)."
+            )
+        self.esik_stratejisi = str(oc.esik_stratejisi).lower()
+        if self.esik_stratejisi != "f1_maks":
+            raise ValueError(
+                f"Desteklenmeyen esik stratejisi: {oc.esik_stratejisi!r} "
+                "(su an yalnizca 'f1_maks' uygulanmaktadir)."
+            )
         self.ham_pencere = self.w * self.paa_faktoru   # ham nokta sayisi
         self.kesimler = sax_kesim_noktalari(self.a)
         self.oto: OlasiliksalOtomata | None = None
@@ -91,8 +103,9 @@ class OtomataAnomaliModeli(AnomaliModeli):
         # Karar esigi: dogrulama (yoksa egitim) uzerinde F1 maksimize
         referans = dogrulama if dogrulama is not None else egitim
         skorlar, konumlar = self.skor(referans)
-        self.esik = f1_maksimize_esik(skorlar, referans.y[konumlar], self.esik_aday_sayisi,
-                                      self.tek_sinif_persentil)
+        if self.esik_stratejisi == "f1_maks":
+            self.esik = f1_maksimize_esik(skorlar, referans.y[konumlar], self.esik_aday_sayisi,
+                                          self.tek_sinif_persentil)
         self.ref_skor_sd = float(np.std(skorlar) + 1e-8)
         return self
 

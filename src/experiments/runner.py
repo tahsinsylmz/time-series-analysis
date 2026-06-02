@@ -46,6 +46,8 @@ class DeneyYoneticisi:
         self.gurultu_tohum_batadal = int(cfg.senaryolar.gurultu.tohum_batadal)
         self.unseen_faktor = float(cfg.senaryolar.unseen.olcek_faktoru)
         self.dl_modeller = list(cfg.derin_ogrenme.modeller)
+        self.pozitif_sinif = int(cfg.degerlendirme.pozitif_sinif)
+        self.istatistik_testleri = [str(t).lower() for t in cfg.degerlendirme.istatistik_testleri]
         self.cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini)
         os.makedirs(self.cikti, exist_ok=True)
 
@@ -63,7 +65,7 @@ class DeneyYoneticisi:
             maske = np.isin(konumlar, izin) if len(izin) else np.zeros(len(konumlar), bool)
             skorlar, konumlar, tahmin = skorlar[maske], konumlar[maske], tahmin[maske]
         y = girdi.y[konumlar]
-        return ikili_metrikler(y, tahmin, skorlar), konumlar, tahmin, y
+        return ikili_metrikler(y, tahmin, skorlar, self.pozitif_sinif), konumlar, tahmin, y
 
     def _senaryolar(self, model, ad, veri_seti, fold, seed, g_test, g_gurultu, g_unseen):
         """Bir egitilmis model icin 3 senaryonun kayitlarini ve orijinal tahminleri uretir.
@@ -157,7 +159,7 @@ class DeneyYoneticisi:
         ham = veri_yukle(cfg, "batadal")
         seeds = self.seeds[:seed_limit] if seed_limit else self.seeds
         n = ham.X.shape[0]
-        tr, val, test = zaman_sirali_bol(n, bc.egitim_orani, bc.dogrulama_orani)
+        tr, val, test = zaman_sirali_bol(n, bc.egitim_orani, bc.dogrulama_orani, bc.test_orani)
         seg = np.zeros(n, dtype=int)
         on = OnIslemci(cfg).fit(ham.X[tr])
 
@@ -302,10 +304,11 @@ class DeneyYoneticisi:
         ozet = self._ozetle(df)
         ozet.to_csv(os.path.join(self.cikti, "ozet.csv"), index=False)
 
-        istatistik = {
-            "wilcoxon": self._wilcoxon(df, "SKAB"),
-            "mcnemar": [s for s in (skab_mcnemar, bat_mcnemar) if s is not None],
-        }
+        istatistik: dict[str, list] = {}
+        if "wilcoxon" in self.istatistik_testleri:
+            istatistik["wilcoxon"] = self._wilcoxon(df, "SKAB")
+        if "mcnemar" in self.istatistik_testleri:
+            istatistik["mcnemar"] = [s for s in (skab_mcnemar, bat_mcnemar) if s is not None]
         pd.Series(istatistik).to_json(os.path.join(self.cikti, "istatistik_testleri.json"),
                                       force_ascii=False, indent=2)
 

@@ -2,9 +2,10 @@
 # MERKEZI KONFIGURASYON
 # --------------------------------------------------------------------------
 # Projedeki tum ayarlanabilir parametreler bu dosyadan yonetilir; kaynak kodda
-# deney davranisini etkileyen hard-coded sayisal deger yoktur. (Tek istisna,
-# sifira bolmeyi onleyen 1e-8 / 1e-12 gibi matematiksel epsilon sabitleridir.)
-# Bu dosyadaki bir parametre degistiginde on isleme, modelleme ve deney
+# deney davranisini etkileyen hard-coded sayisal deger yoktur. Buradaki her
+# anahtar kod tarafindan cfg ile okunur (olu/dekoratif anahtar birakilmaz).
+# (Tek istisna, sifira bolmeyi onleyen 1e-8 / 1e-12 gibi matematiksel epsilon
+# sabitleridir.) Bir parametre degistiginde on isleme, modelleme ve deney
 # pipeline'i otomatik olarak yeniden uretilir.
 # ==========================================================================
 
@@ -52,7 +53,6 @@ on_isleme:
   pca:
     aktif: true
     bilesen_sayisi: 1                 # otomata tek boyut ister -> PC1
-    sadece_otomata: true              # PCA cikti yalnizca otomata girdisinde kullanilir
     tohum: 0                          # PCA cozumleyici icin tekrar uretilebilir tohum
 
 # --------------------------------------------------------------------------
@@ -111,8 +111,7 @@ otomata:
 # Degerlendirme ve istatistiksel analiz
 # --------------------------------------------------------------------------
 degerlendirme:
-  metrikler: ["accuracy", "precision", "recall", "f1"]
-  pozitif_sinif: 1                    # anomali = pozitif sinif
+  pozitif_sinif: 1                    # anomali = pozitif sinif (metriklerde pos_label)
   esik_aday_sayisi: 200               # F1-maksimize esik aramasinda taranan aday sayisi
   tek_sinif_esik_persentili: 0.95     # val tek-sinifsa (anomalisiz) esik = skor persentili
-  istatistik_testleri: ["wilcoxon", "mcnemar"]
+  istatistik_testleri: ["wilcoxon", "mcnemar"]   # calistirilacak anlamlilik testleri
