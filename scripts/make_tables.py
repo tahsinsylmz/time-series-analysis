@@ -10,6 +10,7 @@ Uretilen tablolar (ister IX.A):
   4. tablo_batadal.md         - BATADAL zaman-sirali test (seed ort+std)
   5. tablo_istatistik.md      - Wilcoxon ve McNemar testleri
   6. tablo_unseen.md          - VI.A sozluk-disi Detection Rate / Mapping Accuracy (otomata)
+  7. tablo_runtime.md         - model bazli egitim/cikarim suresi (EK Tablo5)
 
 ozet.csv kat ve seed varyansini tek std'de karistirir; bu script ikisini AYIRIR
 (SKAB icin kat-bazli varyasyon ile seed-bazli varyasyon ayri raporlanir).
@@ -212,6 +213,27 @@ def tablo_unseen(df) -> str:
            _md_tablo(basliklar, satirlar) + aciklama
 
 
+# ---- 7) calisma sureleri (EK Tablo5) ----
+def tablo_runtime(df) -> str:
+    """Model+veri bazli ortalama egitim/cikarim suresi (EK Tablo5)."""
+    if df is None or df.empty:
+        return "Calisma suresi verisi yok.\n"
+    basliklar = ["Veri", "Model", "Egitim suresi (sn)", "Cikarim suresi (sn)"]
+    satirlar = []
+    for _, r in df.iterrows():
+        satirlar.append([
+            str(r["veri_seti"]),
+            MODEL_ETIKET.get(str(r["model"]), str(r["model"])),
+            f"{float(r['egitim_suresi_sn']):.3f}",
+            f"{float(r['cikarim_suresi_sn']):.4f}",
+        ])
+    aciklama = ("\n*Tek bir tam kosuda olculen sureler: egitim suresi modelin egitimi "
+                "(tum senaryolarda ayni), cikarim suresi orijinal test seti uzerinde. "
+                "Otomata deterministik; derin ogrenme degerleri seed ortalamasidir.*\n")
+    return ("## Calisma Sureleri - Egitim / Cikarim (EK Tablo5)\n\n"
+            + _md_tablo(basliklar, satirlar) + aciklama)
+
+
 # ---- LaTeX (ana SKAB kat tablosu) ----
 def latex_skab_fold(df: pd.DataFrame) -> str:
     alt = df[(df.veri_seti == "SKAB") & (df.senaryo == "orijinal")]
@@ -247,6 +269,8 @@ def main() -> None:
     ist = json.load(open(ist_yol, encoding="utf-8")) if os.path.exists(ist_yol) else {}
     unseen_yol = os.path.join(sonuc, "unseen_analizi.csv")
     unseen_df = pd.read_csv(unseen_yol) if os.path.exists(unseen_yol) else None
+    sure_yol = os.path.join(sonuc, "calisma_sureleri.csv")
+    sure_df = pd.read_csv(sure_yol) if os.path.exists(sure_yol) else None
 
     _yaz(cikti, "tablo_skab_fold.md", tablo_skab_fold(df))
     _yaz(cikti, "tablo_skab_seed.md", tablo_skab_seed(df))
@@ -255,6 +279,7 @@ def main() -> None:
     _yaz(cikti, "tablo_batadal.md", tablo_batadal(df))
     _yaz(cikti, "tablo_istatistik.md", tablo_istatistik(ist))
     _yaz(cikti, "tablo_unseen.md", tablo_unseen(unseen_df))
+    _yaz(cikti, "tablo_runtime.md", tablo_runtime(sure_df))
     _yaz(cikti, "tablo_skab_fold.tex", latex_skab_fold(df))
 
     print(f"\nTum tablolar '{cikti}' dizinine yazildi.")

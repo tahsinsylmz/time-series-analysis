@@ -52,6 +52,7 @@ class DeneyYoneticisi:
         os.makedirs(self.cikti, exist_ok=True)
         # Referans DL F1 bu esigin altindaysa McNemar yorum disi (dejenere) sayilir
         self.mcnemar_dejenere_esik = float(cfg.degerlendirme.mcnemar_dejenere_f1_esigi)
+        self._son_cikarim_suresi = float("nan")   # _degerlendir her cagrida gunceller
 
     # ---- model fabrikasi (acik/kapali ilkesi) ----
     def _model_olustur(self, ad: str):
@@ -61,22 +62,29 @@ class DeneyYoneticisi:
 
     # ---- tek bir degerlendirme ----
     def _degerlendir(self, model, girdi):
+        t_cikarim = time.perf_counter()
         skorlar, konumlar = model.skor(girdi)
+        self._son_cikarim_suresi = time.perf_counter() - t_cikarim
         tahmin = (skorlar >= model.esik).astype(int)
         y = girdi.y[konumlar]
         return ikili_metrikler(y, tahmin, skorlar, self.pozitif_sinif), konumlar, tahmin, y
 
-    def _senaryolar(self, model, ad, veri_seti, fold, seed, g_test, g_gurultu, g_unseen):
+    def _senaryolar(self, model, ad, veri_seti, fold, seed, g_test, g_gurultu, g_unseen,
+                    egitim_suresi: float = float("nan")):
         """Bir egitilmis model icin 3 senaryonun kayitlarini ve orijinal tahminleri uretir.
 
         unseen senaryosu, genlik kaydirilmis test setinin TAMAMI uzerinde degerlendirilir
         (covariate shift); olcekleme egitimde gorulmemis pattern'leri tetikler.
+        ``egitim_suresi`` saniye cinsinden modelin egitim suresidir; cikarim suresi yalniz
+        'orijinal' senaryoda (kanonik test seti) olculur, diger senaryolarda NaN birakilir.
         """
         kayitlar = []
         eslesme = None
         for senaryo in self.senaryolar:
+            cikarim_suresi = float("nan")
             if senaryo == "orijinal":
                 m, konum, tahmin, y = self._degerlendir(model, g_test)
+                cikarim_suresi = self._son_cikarim_suresi
                 eslesme = (konum, tahmin, y)
             elif senaryo == "gurultu":
                 m, _, _, _ = self._degerlendir(model, g_gurultu)
@@ -86,7 +94,9 @@ class DeneyYoneticisi:
                 continue
             kayitlar.append({
                 "veri_seti": veri_seti, "model": ad, "senaryo": senaryo,
-                "fold": fold, "seed": seed, **m,
+                "fold": fold, "seed": seed,
+                "egitim_suresi_sn": egitim_suresi, "cikarim_suresi_sn": cikarim_suresi,
+                **m,
             })
         return kayitlar, eslesme
 
@@ -133,12 +143,15 @@ class DeneyYoneticisi:
 
             # Otomata (deterministik): fold basina bir kez
             seed_ayarla(seeds[0])
+            t_egitim = time.perf_counter()
             auto = self._model_olustur("automata").egit(g_tr, g_val)
+            auto_egitim_suresi = time.perf_counter() - t_egitim
             novelty = len(auto.unseen_konumlar(g_unseen))   # raporlama icin novelty sayisi
             unseen_kayit.append({"veri_seti": "SKAB", "fold": fold_i,
                                  **auto.unseen_analizi(g_unseen, g_test)})
             a_kayit, a_eslesme = self._senaryolar(auto, "automata", "SKAB", fold_i, -1,
-                                                  g_test, g_gurultu, g_unseen)
+                                                  g_test, g_gurultu, g_unseen,
+                                                  egitim_suresi=auto_egitim_suresi)
             kayitlar.extend(a_kayit)
 
             # Derin ogrenme: her seed icin
@@ -146,9 +159,12 @@ class DeneyYoneticisi:
             for seed in seeds:
                 for mimari in self.dl_modeller:
                     seed_ayarla(seed)
+                    t_egitim = time.perf_counter()
                     model = self._model_olustur(mimari).egit(g_tr, g_val)
+                    egitim_suresi = time.perf_counter() - t_egitim
                     d_kayit, d_eslesme = self._senaryolar(model, mimari, "SKAB", fold_i, seed,
-                                                          g_test, g_gurultu, g_unseen)
+                                                          g_test, g_gurultu, g_unseen,
+                                                          egitim_suresi=egitim_suresi)
                     kayitlar.extend(d_kayit)
                     if mimari == ref_dl and seed == seeds[0]:
                         dl_ref_eslesme = d_eslesme
@@ -193,12 +209,15 @@ class DeneyYoneticisi:
         ref_dl = self.dl_modeller[-1]
 
         seed_ayarla(seeds[0])
+        t_egitim = time.perf_counter()
         auto = self._model_olustur("automata").egit(g_tr, g_val)
+        auto_egitim_suresi = time.perf_counter() - t_egitim
         novelty = len(auto.unseen_konumlar(g_unseen))
         unseen_kayit = [{"veri_seti": "BATADAL", "fold": 0,
                          **auto.unseen_analizi(g_unseen, g_test)}]
         a_kayit, a_eslesme = self._senaryolar(auto, "automata", "BATADAL", 0, -1,
-                                              g_test, g_gurultu, g_unseen)
+                                              g_test, g_gurultu, g_unseen,
+                                              egitim_suresi=auto_egitim_suresi)
         kayitlar.extend(a_kayit)
         print(f"  [BATADAL] otomata bitti (durum={auto.oto.K}, novelty={novelty})")
 
@@ -207,9 +226,12 @@ class DeneyYoneticisi:
             for mimari in self.dl_modeller:
                 t0 = time.time()
                 seed_ayarla(seed)
+                t_egitim = time.perf_counter()
                 model = self._model_olustur(mimari).egit(g_tr, g_val)
+                egitim_suresi = time.perf_counter() - t_egitim
                 d_kayit, d_eslesme = self._senaryolar(model, mimari, "BATADAL", 0, seed,
-                                                      g_test, g_gurultu, g_unseen)
+                                                      g_test, g_gurultu, g_unseen,
+                                                      egitim_suresi=egitim_suresi)
                 kayitlar.extend(d_kayit)
                 if mimari == ref_dl and seed == seeds[0]:
                     dl_ref_eslesme = d_eslesme
@@ -289,6 +311,21 @@ class DeneyYoneticisi:
                       f"durum={np.mean(durumlar):.1f} yogunluk={np.mean(yogunluklar):.3f}")
         return kayitlar
 
+    @staticmethod
+    def _calisma_sureleri(df: pd.DataFrame) -> pd.DataFrame:
+        """Model+veri bazli ortalama egitim/cikarim suresi (EK Tablo5).
+
+        Egitim suresi modelin tum senaryo satirlarinda ayni deger olarak tasinir;
+        cikarim suresi yalniz 'orijinal' senaryoda olculur. Ortalama seed/fold
+        uzerinden alinir (otomata deterministik -> tek deger).
+        """
+        if "egitim_suresi_sn" not in df.columns:
+            return pd.DataFrame()
+        egit = df.groupby(["veri_seti", "model"])["egitim_suresi_sn"].mean()
+        orij = df[df.senaryo == "orijinal"]
+        cikar = orij.groupby(["veri_seti", "model"])["cikarim_suresi_sn"].mean()
+        return pd.concat([egit, cikar], axis=1).reset_index()
+
     # ---- ozet ve istatistik ----
     def _ozetle(self, df: pd.DataFrame) -> pd.DataFrame:
         olcut = ["accuracy", "precision", "recall", "f1"]
@@ -344,6 +381,10 @@ class DeneyYoneticisi:
         # VI.A sozluk-disi yonetim metrikleri (yalniz otomata; DL'de kavramsal karsiligi yok)
         unseen_df = pd.DataFrame(skab_unseen + bat_unseen)
         unseen_df.to_csv(os.path.join(self.cikti, "unseen_analizi.csv"), index=False)
+
+        # Calisma sureleri (EK Tablo5): model+veri bazli ortalama egitim/cikarim suresi
+        self._calisma_sureleri(df).to_csv(
+            os.path.join(self.cikti, "calisma_sureleri.csv"), index=False)
 
         istatistik: dict[str, list] = {}
         if "wilcoxon" in self.istatistik_testleri:

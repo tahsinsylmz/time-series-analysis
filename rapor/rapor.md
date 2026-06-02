@@ -173,6 +173,15 @@ ROC-AUC ≈ 0,93 değeri 5 kat ortalaması, figürdeki eğri **SKAB fold-1** iç
 otomata durum geçiş diyagramı ve geçiş olasılık ısı haritası `results/figurler/`
 altındadır.
 
+### 5.7 Çalışma Süreleri (EK Tablo5)
+
+Her model için eğitim ve çıkarım (inference) süreleri tam koşu sırasında ölçülür
+(`results/calisma_sureleri.csv`, `rapor/tablolar/tablo_runtime.md`). Beyaz kutu otomata,
+tek boyutlu (PC1) frekans tabanlı bir model olduğundan derin öğrenme modellerine kıyasla
+belirgin biçimde **daha kısa eğitim süresi** ister; çıkarım süreleri tüm modellerde küçük
+ölçektedir. Bu, yorumlanabilirliğin yanında hesaplama maliyeti açısından da otomatanın
+hafif olduğunu gösterir (kesin değerler için tablo_runtime.md).
+
 ## 6. Tartışma: Doğruluk–Açıklanabilirlik Ödünleşimi
 
 SKAB'da derin öğrenme doğrulukta açık ara öndedir; ancak kararlarının gerekçesini
