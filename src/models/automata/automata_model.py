@@ -126,7 +126,11 @@ class OtomataAnomaliModeli(AnomaliModeli):
             p = self.oto.gecis_olasiligi(kaynak, hedef)
             log_olasilik += float(np.log(p + 1e-12))
             if hedef_coz[1]:  # unseen hedef pattern
-                unseen_ceza += hedef_coz[3]
+                # hedef_coz[3] Levenshtein mesafesidir; sozluk bos oldugunda (K=0)
+                # en_yakin_pattern -1 dondurur. Negatif cezayi (ve dolayisiyla negatif
+                # skoru) engellemek icin mesafe 0'a kelepcelenir. Gercek veride K>0
+                # oldugundan bu kelepce sonuc-notrdur.
+                unseen_ceza += max(int(hedef_coz[3]), 0)
             gecisler.append({
                 "kaynak_pattern": kelimeler[k - 1],
                 "hedef_pattern": kelimeler[k],
