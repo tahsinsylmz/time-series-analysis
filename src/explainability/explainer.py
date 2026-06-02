@@ -10,6 +10,13 @@ otomata ise her karari izlenebilir bilesenlere ayirir:
     mesafesi (eklenen ceza),
   - nihai anomali skoru, karar esigi, karar ve bir guven skoru.
 
+Ust-seviye cikti, yolun herhangi bir gecisinde gorulmemis (unseen) oruntu olup
+olmadigini ``yol_unseen_var`` (bool) ve ``unseen_gecis_sayisi`` (int) alanlariyla
+ozetler. Standart cikti formatindaki (``spec_formati``) ve ust-seviyedeki ``status``
+alani ise YALNIZCA son (karar veren) gecisin durumunu (``seen``/``unseen``) yansitir;
+yol uzerindeki onceki gecislerde unseen oruntu bulunabilecegi icin tum yol genelindeki
+unseen bilgisi yalnizca bu iki ust-seviye bayraktan okunmali.
+
 Cikti hem makine-okur (JSON) hem insan-okur (Turkce metin) olarak uretilir.
 """
 from __future__ import annotations
@@ -108,7 +115,13 @@ class OtomataAciklayici:
 
     # ---- tekil aciklama ----
     def acikla(self, veri: ModelGirdisi, hedef_konum: int) -> dict:
-        """Verilen konumdaki karari ayrintili (JSON-uyumlu) bir sozluge cevirir."""
+        """Verilen konumdaki karari ayrintili (JSON-uyumlu) bir sozluge cevirir.
+
+        Donen sozlukteki ``status`` (ve ``spec_formati['status']``) alani yalnizca
+        son (karar veren) gecisin ``seen``/``unseen`` durumunu yansitir. Yolun
+        TUMUNDEKI unseen oruntuler icin ust-seviye ``yol_unseen_var`` (bool) ve
+        ``unseen_gecis_sayisi`` (int) alanlari kullanilir.
+        """
         bas, t, kelimeler, seri, yerel_bitis = self._konum_coz(veri, hedef_konum)
         L = self.model.ham_pencere
         ham_pencere = seri[yerel_bitis - L + 1: yerel_bitis + 1]
@@ -140,6 +153,8 @@ class OtomataAciklayici:
             "ham_pencere_normalize": [round(float(x), 4) for x in ham_pencere],
             "paa": [round(float(x), 4) for x in paa],
             "durum_sax": durum,
+            "yol_unseen_var": any(g["hedef_unseen"] for g in bilgi["gecisler"]),
+            "unseen_gecis_sayisi": sum(1 for g in bilgi["gecisler"] if g["hedef_unseen"]),
             "status": spec_formati["status"],
             "mapped_to": spec_formati["mapped_to"],
             "yol": [bilgi["gecisler"][0]["kaynak_pattern"]]
