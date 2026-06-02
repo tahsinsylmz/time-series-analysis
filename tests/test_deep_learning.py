@@ -4,6 +4,7 @@ Kapsam: kayan pencere uretimi (sekil, etiket, segment siniri), pozitif sinif
 agirligi, olasilik ciktisi araligi ve egitim dongusunde kaybin dusmesi.
 """
 import numpy as np
+import pytest
 import torch
 
 from src.models.deep_learning.datasets import pencereler_olustur
@@ -104,3 +105,65 @@ def test_egit_dongusu_kaybi_dusurur():
     ag = egit_dongusu(ag, X, et, X, et, cfg)
     sonra = egitim_kaybi(ag)
     assert sonra < once
+
+
+def _val_kaybi_kaydedici(val_etiket: np.ndarray, pos_weight: float):
+    """Egitim dongusundeki her dogrulama (eval) ileri-gecisinin kaybini kaydeden
+    bir forward-hook ve kayit listesi dondurur.
+
+    egit_dongusu val kaybini ag.eval() altinda epoch basina BIR kez hesaplar; hook
+    yalnizca egitim-disi (eval) modundaki ileri-gecislerde tetiklenerek epoch basina
+    gercek val kaybini biriktirir. Boylece hem kosulan epoch sayisi hem de en iyi
+    (en dusuk) kaybin geri yuklenip yuklenmedigi olculebilir.
+    """
+    import torch
+
+    kayip_fn = torch.nn.BCEWithLogitsLoss(
+        pos_weight=torch.tensor([pos_weight], dtype=torch.float32)
+    )
+    val_y = torch.from_numpy(val_etiket.astype(np.float32))
+    kayitlar: list[float] = []
+
+    def hook(module, girdi, cikti):
+        if not module.training:  # yalnizca dogrulama (eval) ileri-gecisi
+            with torch.no_grad():
+                kayitlar.append(float(kayip_fn(cikti, val_y)))
+
+    return hook, kayitlar, kayip_fn, val_y
+
+
+def test_egit_dongusu_early_stopping_ve_en_iyi_geri_yukler():
+    # Egitim sinyali ile dogrulama sinyali KASITLI ZIT: model egitimi ogrendikce
+    # val kaybi kotulesir -> early stopping toplam epoch'tan ONCE tetiklenmeli ve
+    # donen ag en dusuk val kaybina sahip epoch'un agirliklarini tasimali.
+    seed_ayarla(0)
+    cfg = konfig_yukle()
+    cfg.derin_ogrenme.epoch = 50
+    cfg.derin_ogrenme.early_stopping_sabri = 3
+
+    n, L, F = 64, 5, 2
+    Xtr = np.random.randn(n, L, F).astype(np.float32)
+    ytr = (np.arange(n) % 2).astype(np.int64)
+    Xtr[ytr == 1] += 2.0                      # egitimde: pozitif -> yuksek ortalama
+    Xval = np.random.randn(n, L, F).astype(np.float32)
+    yval = (np.arange(n) % 2).astype(np.int64)
+    Xval[yval == 1] -= 2.0                     # dogrulamada: pozitif -> DUSUK ortalama (zit)
+
+    pw = _pos_weight(ytr) if cfg.derin_ogrenme.sinif_agirligi else 1.0
+    hook, val_kayitlari, kayip_fn, val_y = _val_kaybi_kaydedici(yval, pw)
+
+    seed_ayarla(0)
+    ag = ag_olustur("lstm", ozellik_sayisi=F, gizli_boyut=8, katman_sayisi=1, dropout=0.0)
+    tutamak = ag.register_forward_hook(hook)
+    ag = egit_dongusu(ag, Xtr, ytr, Xval, yval, cfg)
+    tutamak.remove()
+
+    # 1) Early stopping toplam epoch limitinden ONCE tetiklendi
+    kosulan_epoch = len(val_kayitlari)
+    assert 0 < kosulan_epoch < cfg.derin_ogrenme.epoch
+
+    # 2) Donen ag, gozlenen en dusuk val kaybina sahip agirliklari geri yukledi
+    ag.eval()
+    with torch.no_grad():
+        donen_val_kaybi = float(kayip_fn(ag(torch.from_numpy(Xval)), val_y))
+    assert donen_val_kaybi == pytest.approx(min(val_kayitlari), abs=1e-5)

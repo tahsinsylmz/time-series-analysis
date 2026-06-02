@@ -113,6 +113,19 @@ küçük, çok dengesiz ve eğitim/test dağılımı farklı olduğundan bütün
 zordur. Beyaz kutu modelin BATADAL'da görece iyi durması, frekans tabanlı örüntü
 modelinin az veriyle de işleyebildiğini gösterir.
 
+**Kapsam notu (veri setleri arası transfer).** Bu çalışma SKAB ve BATADAL ile
+sınırlandırılmıştır; bir veri setinde eğitip diğerinde test eden çapraz veri seti
+(cross-dataset) genellenebilirlik analizi (ek istek listesindeki örnek Tablo 3,
+SWAT/WADI/BATADAL) kapsam dışıdır. Gerekçe: iki veri seti **farklı öznitelik
+uzaylarına** sahiptir (SKAB 8 öznitelik → PC1, BATADAL 43 öznitelik → PC1) ve
+öznitelikler fiziksel olarak eşlenemez; ayrıca **etiket semantiği** farklıdır (SKAB
+`anomaly`, BATADAL `ATT_FLAG`). Otomata tek boyutlu PC1 üzerinde eğitim bölmesine
+uydurulan bir SAX/PAA sözlüğü ve geçiş matrisi öğrendiğinden, farklı boyutlu ve
+farklı dağılımlı bir veri setine uygulanması tanımsızdır; derin öğrenme modelleri de
+girdi boyutuna bağlı olduğundan doğrudan aktarılamaz. Dolayısıyla ortak bir transfer
+kurgusu tanımlı olmadığından bu eksen analiz dışı bırakılmıştır (ek istek listesindeki
+SWAT/WADI yalnızca biçim örneğidir).
+
 ### 5.3 Gürültü ve Dağılım Kayması Etkisi
 
 Otomatanın F1'i gürültü ve kayma altında neredeyse sabittir (SKAB 0,521/0,522/0,512).
@@ -122,10 +135,17 @@ işe yarar (bkz. `tablo_dayaniklilik.md`, `fig_senaryo_dayaniklilik.png`).
 
 ### 5.4 Unseen Veri Davranışı
 
-`unseen` senaryosunda kazanç kayması sözlük-dışı örüntüler üretir; otomata bunları
-Levenshtein ile en yakın bilinen duruma eşler. Kaydırılmış SKAB test setinde gözlenen
-62 sözlük-dışı örüntünün en yakın bilinene ortalama mesafesi 1,02 (en çok 2)
-olup, eşlemenin küçük düzenlemelerle çalıştığını gösterir.
+İki kavram ayrı tutulur. (1) **`unseen` senaryosu** bir *kovaryant kayma* (covariate
+shift) testidir: kazanç (×1,8) ile ölçeklenmiş test setinin **tamamı** üzerinde F1
+ölçülür; tablolardaki `unseen` sütunu budur. (2) **VI.A sözlük-dışı (out-of-vocabulary)
+yönetimi** ise yalnızca eğitim sözlüğünde bulunmayan örüntülerin nasıl ele alındığını
+ölçer ve `unseen_analizi.csv` ile *ayrı* raporlanır (bkz. Sözlük-dışı Yönetimi tablosu):
+**Detection Rate** (sözlük-dışı örüntü taşıyan test konumu oranı) ve **Mapping Accuracy**
+(Levenshtein ile eşlenen en yakın bilinen örüntünün, kaydırma öncesi gerçek örüntüye
+doğruluğu; tam eşitlik ve mesafe≤1). Kaydırılmış SKAB test setinde gözlenen 62 sözlük-dışı
+örüntünün en yakın bilinene ortalama mesafesi 1,02 (en çok 2) olup, eşlemenin küçük
+düzenlemelerle çalıştığını gösterir. Bu sözlük-dışı yönetimin derin öğrenme modellerinde
+kavramsal bir karşılığı yoktur (yalnızca otomataya özgüdür).
 
 ### 5.5 Parametre Etkileri
 
@@ -140,14 +160,27 @@ doğruluğu iyileştirmez — sadelik lehine bir bulgu (`fig_parametre_duyarlili
 Wilcoxon testinde otomata vs LSTM/GRU/1B-CNN için p = 0,0625 (n=5; 5 katta tutarlı
 yönlü farkın ulaşabileceği en küçük değer); derin öğrenme tüm katlarda otomatadan
 yüksektir. McNemar (SKAB, otomata vs 1B-CNN): istatistik = 3296,4, p ≈ 0 (yalnız
-otomatanın doğru olduğu 415, yalnız 1B-CNN'in 4400 nokta). McNemar (BATADAL):
-istatistik = 25,3, p = 4,9·10⁻⁷; burada ham doğruluk her şeye "normal" diyen
-1B-CNN'i kayırır, oysa F1 otomatanın az da olsa gerçek anomali yakaladığını gösterir.
-**Dengesiz veride doğruluk yanıltıcıdır; asıl ölçüt F1/PR'dir.**
+otomatanın doğru olduğu 415, yalnız 1B-CNN'in 4400 nokta); SKAB'da test geçerlidir.
+**McNemar (BATADAL) yorum dışıdır:** bu veri setinde referans derin öğrenme modeli
+(1B-CNN) ve diğer tüm DL modelleri dejenere olup F1 ≈ 0 üretir (her şeye "normal"
+der); bu durumda ham doğruluk üzerinden kurulan McNemar tablosu dejenere modeli
+kayırır ve anlamlı yorumlanamaz. Bu nedenle istatistik çıktısında BATADAL McNemar
+kaydı `yorum_disi: true` bayrağıyla işaretlenir; çıkarımlar yalnızca SKAB McNemar'ı
+üzerinden yapılır. **Dengesiz veride doğruluk yanıltıcıdır; asıl ölçüt F1/PR'dir.**
 
-Görseller: karmaşıklık matrisi, ROC/PR eğrisi (`fig_roc_pr.png`, GRU ROC-AUC ≈ 0,93),
+Görseller: karmaşıklık matrisi, ROC/PR eğrisi (`fig_roc_pr.png`; metinde anılan GRU
+ROC-AUC ≈ 0,93 değeri 5 kat ortalaması, figürdeki eğri **SKAB fold-1** için AUC = 0,961),
 otomata durum geçiş diyagramı ve geçiş olasılık ısı haritası `results/figurler/`
 altındadır.
+
+### 5.7 Çalışma Süreleri (EK Tablo5)
+
+Her model için eğitim ve çıkarım (inference) süreleri tam koşu sırasında ölçülür
+(`results/calisma_sureleri.csv`, `rapor/tablolar/tablo_runtime.md`). Beyaz kutu otomata,
+tek boyutlu (PC1) frekans tabanlı bir model olduğundan derin öğrenme modellerine kıyasla
+belirgin biçimde **daha kısa eğitim süresi** ister; çıkarım süreleri tüm modellerde küçük
+ölçektedir. Bu, yorumlanabilirliğin yanında hesaplama maliyeti açısından da otomatanın
+hafif olduğunu gösterir (kesin değerler için tablo_runtime.md).
 
 ## 6. Tartışma: Doğruluk–Açıklanabilirlik Ödünleşimi
 
@@ -163,8 +196,17 @@ hangi yaklaşımın ne zaman tercih edilebileceğini niceliksel olarak ortaya ko
 ## 7. Sınırlılıklar ve Gelecek Çalışma
 
 Otomatanın SKAB'daki düşük precision'ı, eşik seçiminin ve global z-normalizasyonun
-birlikte yarattığı yüksek-recall rejiminden kaynaklanır; pencere-bazlı normalizasyon
-veya çok boyutlu otomata genişlemeleri incelenebilir. BATADAL'da tek PC bileşeni
+birlikte yarattığı yüksek-recall rejiminden kaynaklanır. Bu rejim bir eşik *hatası*
+değil, dürüst bir F1-optimal seçimin sonucudur: eşik doğrulama bölmesinde F1'i
+maksimize edecek biçimde seçilir (§3) ve otomatanın SKAB'da ürettiği skorlar normal
+ile anomali noktalarını yeterince ayrıştıramadığından, optimal eşik 5 kattan 3'ünde
+(kat 0, 3, 4) tüm test noktalarını anomali işaretleyen bir noktada oturur (recall =
+1,0, precision = sınıf taban oranı ≈ 0,34); kalan iki katta recall 0,88–0,98
+aralığındadır. Uç skor adaylarını dışlayan daha tutucu bir eşik bu katlarda F1'i
+düşürürdü; parametre taramasında en iyi yapılandırmanın da F1 ≈ 0,52 mertebesinde
+kalması (§5.5), düşük precision'ın eşikten değil modelin SKAB'daki ayrıştırma gücünden
+kaynaklandığını doğrular. İyileştirme için pencere-bazlı normalizasyon veya çok
+boyutlu otomata genişlemeleri incelenebilir. BATADAL'da tek PC bileşeni
 sınırlı varyans taşıdığından, otomata için çok değişkenli sembolizasyon gelecekte
 denenebilir.
 

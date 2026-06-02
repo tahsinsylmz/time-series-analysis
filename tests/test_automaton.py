@@ -82,3 +82,28 @@ def test_gecis_matrisi_boyut_ve_satir_toplami():
     assert M.shape == (3, 3)
     assert durumlar == oto.durumlar
     np.testing.assert_allclose(M.sum(axis=1), np.ones(3))
+
+
+def test_bos_sozluk_pattern_coz_mesafe_negatif():
+    # Sozluk bos (K=0) iken en yakin pattern yoktur: mesafe -1, pattern kendine duser.
+    oto = OlasiliksalOtomata(window_size=2, alphabet_size=2, laplace_alpha=1.0)
+    oto.sonlandir()
+    etkin, unseen, en_yakin, mesafe = oto.pattern_coz("aa")
+    assert oto.K == 0
+    assert unseen is True
+    assert mesafe == -1
+    assert etkin == "aa"
+
+
+def test_bos_sozluk_unseen_ceza_negatif_degil():
+    # Regresyon: bos sozluklu otomatada pattern_coz mesafe=-1 dondurse de
+    # _yol_bilgisi cezayi 0'a kelepceler -> unseen_ceza ve skor negatif olmaz.
+    from src.models.automata.automata_model import OtomataAnomaliModeli
+    from src.utils.config import konfig_yukle
+
+    model = OtomataAnomaliModeli(konfig_yukle())
+    model.oto = OlasiliksalOtomata(model.w, model.a, model.alpha)
+    model.oto.sonlandir()  # bos sozluk, K=0
+    bilgi = model._yol_bilgisi(["aa", "ab", "bb"], 2)
+    assert bilgi["unseen_ceza"] >= 0.0
+    assert np.isfinite(bilgi["skor"])

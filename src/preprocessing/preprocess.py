@@ -8,7 +8,25 @@ from __future__ import annotations
 
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
+
+# Desteklenen normalizasyon stratejileri (config: on_isleme.normalizasyon).
+_OLCEKLEYICILER = {
+    "standard": StandardScaler,
+    "minmax": MinMaxScaler,
+    "robust": RobustScaler,
+}
+
+
+def _olcekleyici_olustur(ad: str):
+    """config'teki normalizasyon adina gore scaler ornegi uretir."""
+    anahtar = str(ad).lower()
+    if anahtar not in _OLCEKLEYICILER:
+        raise ValueError(
+            "Bilinmeyen normalizasyon stratejisi: "
+            f"{ad!r}. Gecerli secenekler: {sorted(_OLCEKLEYICILER)}."
+        )
+    return _OLCEKLEYICILER[anahtar]()
 
 
 class OnIslemci:
@@ -20,12 +38,12 @@ class OnIslemci:
 
     def __init__(self, cfg) -> None:
         self.cfg = cfg
-        self.scaler: StandardScaler | None = None
+        self.scaler = None
         self.pca: PCA | None = None
         self.pc1_aciklanan_varyans: float | None = None   # PC1'in acikladigi varyans orani
 
     def fit(self, X_egitim: np.ndarray) -> "OnIslemci":
-        self.scaler = StandardScaler().fit(X_egitim)
+        self.scaler = _olcekleyici_olustur(self.cfg.on_isleme.normalizasyon).fit(X_egitim)
         if self.cfg.on_isleme.pca.aktif:
             olcekli = self.scaler.transform(X_egitim)
             n = self.cfg.on_isleme.pca.bilesen_sayisi

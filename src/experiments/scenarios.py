@@ -3,10 +3,13 @@
 Model temiz veriyle bir kez egitilir, ardindan uc kosulda degerlendirilir:
   - orijinal : test verisi oldugu gibi,
   - gurultu  : normalize veriye Gauss gurultusu eklenir (sensor bozulmasi),
-  - unseen   : yalnizca egitimde gorulmemis pattern'a sahip noktalar.
+  - unseen   : genlik (kazanc) kaydirmasiyla uretilen dagilim disi (covariate
+               shift) test girdisi; egitimde gorulmemis SAX pattern'leri tetikler.
 
-Gurultu ve orijinal ayri girdiler uretir; unseen ise orijinal girdi uzerinde
-bir konum maskesi olarak uygulanir (otomata sozlugune gore).
+Ucunun de uctan uca girdisi ayri uretilir. Genlik kaydirmasi yalnizca otomata
+icin sozluk-disi (out-of-vocabulary) pattern'ler dogurur; bu sozluk-disi
+yonetimin sayisal degerlendirmesi (Detection Rate / Mapping Accuracy) ayrica
+yapilir (bkz. automata_model.unseen_analizi, VI.A).
 """
 from __future__ import annotations
 

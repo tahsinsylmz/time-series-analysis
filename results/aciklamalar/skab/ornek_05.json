@@ -17,6 +17,8 @@
     -0.5029
   ],
   "durum_sax": "bcba",
+  "yol_unseen_var": false,
+  "unseen_gecis_sayisi": 0,
   "status": "seen",
   "mapped_to": "bcba",
   "yol": [

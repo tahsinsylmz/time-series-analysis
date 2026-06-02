@@ -1,0 +1,82 @@
+{
+  "konum": 472,
+  "ham_pencere_normalize": [
+    1.011,
+    0.447,
+    -1.7134,
+    -1.1549,
+    -0.6433,
+    -0.5529,
+    -0.583,
+    0.078
+  ],
+  "paa": [
+    0.729,
+    -1.4342,
+    -0.5981,
+    -0.2525
+  ],
+  "durum_sax": "caab",
+  "yol_unseen_var": false,
+  "unseen_gecis_sayisi": 0,
+  "status": "seen",
+  "mapped_to": "caab",
+  "yol": [
+    "acaa",
+    "baaa",
+    "caab"
+  ],
+  "gecisler": [
+    {
+      "kaynak_pattern": "acaa",
+      "hedef_pattern": "baaa",
+      "etkin_kaynak": "acaa",
+      "etkin_hedef": "baaa",
+      "gecis_olasiligi": 0.0136986301369863,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "baaa",
+      "levenshtein_mesafe": 0
+    },
+    {
+      "kaynak_pattern": "baaa",
+      "hedef_pattern": "caab",
+      "etkin_kaynak": "baaa",
+      "etkin_hedef": "caab",
+      "gecis_olasiligi": 0.005376344086021506,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "caab",
+      "levenshtein_mesafe": 0
+    }
+  ],
+  "path_olasiligi": 7.364854914265722e-05,
+  "log_olasilik": -9.516206114602593,
+  "unseen_ceza": 0.0,
+  "anomali_skoru": 9.516206114602593,
+  "esik": 7.134413541874083,
+  "karar": 1,
+  "karar_metni": "ANOMALI",
+  "anomali_olasiligi": 0.7877,
+  "guven_skoru": 0.5753,
+  "spec_formati": {
+    "time_step": 472,
+    "state": "baaa",
+    "pattern": "caab",
+    "status": "seen",
+    "mapped_to": "caab",
+    "probability": 7.4e-05,
+    "decision": "anomaly"
+  },
+  "karsit_durum": {
+    "en_beklenen_oruntu": "aaaa",
+    "en_beklenen_gecis_olasiligi": 0.182796,
+    "karsit_skor": 5.9898,
+    "karsit_karar_metni": "NORMAL",
+    "karar_degisir_mi": true
+  },
+  "teshis": {
+    "gercek_etiket": 1,
+    "karar_dogru": true
+  },
+  "aciklama_metni": "Pencere sonu durumu 'caab'. Son 2 gecisin yol olasiligi 7.365e-05 (dusuk olasilik = beklenmedik gidisat). Toplam anomali skoru 9.52, esik (7.13) degerini astigi icin karar: ANOMALI (guven 0.58).",
+  "kategori": "dogru_pozitif"
+}

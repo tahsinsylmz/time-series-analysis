@@ -29,8 +29,21 @@ def grup_train_val_bol(egitim_idx: np.ndarray, gruplar: np.ndarray, val_orani: f
     return yeni_egitim_idx, val_idx
 
 
-def zaman_sirali_bol(n: int, egitim_orani: float, dogrulama_orani: float):
-    """BATADAL icin zaman sirali (egitim_idx, val_idx, test_idx)."""
+def zaman_sirali_bol(
+    n: int, egitim_orani: float, dogrulama_orani: float, test_orani: float | None = None
+):
+    """BATADAL icin zaman sirali (egitim_idx, val_idx, test_idx).
+
+    ``test_orani`` verilirse oranlarin toplaminin 1.0 oldugu (ic tutarlilik)
+    dogrulanir; test bolgesi yine kalan kuyruktur (arange(i2, n)).
+    """
+    if test_orani is not None:
+        toplam = float(egitim_orani) + float(dogrulama_orani) + float(test_orani)
+        if abs(toplam - 1.0) > 1e-9:
+            raise ValueError(
+                "BATADAL bolme oranlari 1.0 toplamiyor: "
+                f"egitim+dogrulama+test = {toplam:.6f}."
+            )
     i1 = int(n * egitim_orani)
     i2 = int(n * (egitim_orani + dogrulama_orani))
     egitim_idx = np.arange(0, i1)

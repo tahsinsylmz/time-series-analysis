@@ -1,0 +1,82 @@
+{
+  "konum": 333,
+  "ham_pencere_normalize": [
+    0.1174,
+    0.7413,
+    0.7663,
+    0.8273,
+    -0.3355,
+    -0.3601,
+    -0.417,
+    -0.377
+  ],
+  "paa": [
+    0.4294,
+    0.7968,
+    -0.3478,
+    -0.397
+  ],
+  "durum_sax": "bcbb",
+  "yol_unseen_var": false,
+  "unseen_gecis_sayisi": 0,
+  "status": "seen",
+  "mapped_to": "bcbb",
+  "yol": [
+    "cbcb",
+    "ccbb",
+    "bcbb"
+  ],
+  "gecisler": [
+    {
+      "kaynak_pattern": "cbcb",
+      "hedef_pattern": "ccbb",
+      "etkin_kaynak": "cbcb",
+      "etkin_hedef": "ccbb",
+      "gecis_olasiligi": 0.044444444444444446,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "ccbb",
+      "levenshtein_mesafe": 0
+    },
+    {
+      "kaynak_pattern": "ccbb",
+      "hedef_pattern": "bcbb",
+      "etkin_kaynak": "ccbb",
+      "etkin_hedef": "bcbb",
+      "gecis_olasiligi": 0.018072289156626505,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "bcbb",
+      "levenshtein_mesafe": 0
+    }
+  ],
+  "path_olasiligi": 0.0008032128514681397,
+  "log_olasilik": -7.126890808820974,
+  "unseen_ceza": 0.0,
+  "anomali_skoru": 7.126890808820974,
+  "esik": 7.134413541874083,
+  "karar": 0,
+  "karar_metni": "NORMAL",
+  "anomali_olasiligi": 0.499,
+  "guven_skoru": 0.0021,
+  "spec_formati": {
+    "time_step": 333,
+    "state": "ccbb",
+    "pattern": "bcbb",
+    "status": "seen",
+    "mapped_to": "bcbb",
+    "probability": 0.000803,
+    "decision": "normal"
+  },
+  "karsit_durum": {
+    "en_beklenen_oruntu": "ccbb",
+    "en_beklenen_gecis_olasiligi": 0.204819,
+    "karsit_skor": 4.6991,
+    "karsit_karar_metni": "NORMAL",
+    "karar_degisir_mi": false
+  },
+  "teshis": {
+    "gercek_etiket": 0,
+    "karar_dogru": true
+  },
+  "aciklama_metni": "Pencere sonu durumu 'bcbb'. Son 2 gecisin yol olasiligi 8.032e-04 (dusuk olasilik = beklenmedik gidisat). Toplam anomali skoru 7.13, esik (7.13) degerini altinda kaldigi icin karar: NORMAL (guven 0.00).",
+  "kategori": "sinirda"
+}

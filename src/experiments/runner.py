@@ -46,8 +46,13 @@ class DeneyYoneticisi:
         self.gurultu_tohum_batadal = int(cfg.senaryolar.gurultu.tohum_batadal)
         self.unseen_faktor = float(cfg.senaryolar.unseen.olcek_faktoru)
         self.dl_modeller = list(cfg.derin_ogrenme.modeller)
+        self.pozitif_sinif = int(cfg.degerlendirme.pozitif_sinif)
+        self.istatistik_testleri = [str(t).lower() for t in cfg.degerlendirme.istatistik_testleri]
         self.cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini)
         os.makedirs(self.cikti, exist_ok=True)
+        # Referans DL F1 bu esigin altindaysa McNemar yorum disi (dejenere) sayilir
+        self.mcnemar_dejenere_esik = float(cfg.degerlendirme.mcnemar_dejenere_f1_esigi)
+        self._son_cikarim_suresi = float("nan")   # _degerlendir her cagrida gunceller
 
     # ---- model fabrikasi (acik/kapali ilkesi) ----
     def _model_olustur(self, ad: str):
@@ -55,27 +60,31 @@ class DeneyYoneticisi:
             return OtomataAnomaliModeli(self.cfg)
         return DerinOgrenmeModeli(self.cfg, ad)
 
-    # ---- tek bir degerlendirme (opsiyonel konum maskesi) ----
-    def _degerlendir(self, model, girdi, izin: np.ndarray | None = None):
+    # ---- tek bir degerlendirme ----
+    def _degerlendir(self, model, girdi):
+        t_cikarim = time.perf_counter()
         skorlar, konumlar = model.skor(girdi)
+        self._son_cikarim_suresi = time.perf_counter() - t_cikarim
         tahmin = (skorlar >= model.esik).astype(int)
-        if izin is not None:
-            maske = np.isin(konumlar, izin) if len(izin) else np.zeros(len(konumlar), bool)
-            skorlar, konumlar, tahmin = skorlar[maske], konumlar[maske], tahmin[maske]
         y = girdi.y[konumlar]
-        return ikili_metrikler(y, tahmin, skorlar), konumlar, tahmin, y
+        return ikili_metrikler(y, tahmin, skorlar, self.pozitif_sinif), konumlar, tahmin, y
 
-    def _senaryolar(self, model, ad, veri_seti, fold, seed, g_test, g_gurultu, g_unseen):
+    def _senaryolar(self, model, ad, veri_seti, fold, seed, g_test, g_gurultu, g_unseen,
+                    egitim_suresi: float = float("nan")):
         """Bir egitilmis model icin 3 senaryonun kayitlarini ve orijinal tahminleri uretir.
 
         unseen senaryosu, genlik kaydirilmis test setinin TAMAMI uzerinde degerlendirilir
         (covariate shift); olcekleme egitimde gorulmemis pattern'leri tetikler.
+        ``egitim_suresi`` saniye cinsinden modelin egitim suresidir; cikarim suresi yalniz
+        'orijinal' senaryoda (kanonik test seti) olculur, diger senaryolarda NaN birakilir.
         """
         kayitlar = []
         eslesme = None
         for senaryo in self.senaryolar:
+            cikarim_suresi = float("nan")
             if senaryo == "orijinal":
                 m, konum, tahmin, y = self._degerlendir(model, g_test)
+                cikarim_suresi = self._son_cikarim_suresi
                 eslesme = (konum, tahmin, y)
             elif senaryo == "gurultu":
                 m, _, _, _ = self._degerlendir(model, g_gurultu)
@@ -85,9 +94,23 @@ class DeneyYoneticisi:
                 continue
             kayitlar.append({
                 "veri_seti": veri_seti, "model": ad, "senaryo": senaryo,
-                "fold": fold, "seed": seed, **m,
+                "fold": fold, "seed": seed,
+                "egitim_suresi_sn": egitim_suresi, "cikarim_suresi_sn": cikarim_suresi,
+                **m,
             })
         return kayitlar, eslesme
+
+    @staticmethod
+    def _orijinal_f1(kayitlar) -> float:
+        """Bir modelin senaryo kayitlarindan orijinal senaryonun F1'ini cikarir.
+
+        McNemar dejenere kontrolu icin referans DL'in temiz test F1'i gerekir;
+        bu deger zaten _senaryolar ciktisinda mevcuttur (yeniden hesaplanmaz).
+        """
+        for kayit in kayitlar:
+            if kayit.get("senaryo") == "orijinal":
+                return float(kayit.get("f1", float("nan")))
+        return float("nan")
 
     # ---- SKAB: dosya bazli capraz dogrulama ----
     def skab_calistir(self, fold_limit: int | None = None, seed_limit: int | None = None):
@@ -96,7 +119,9 @@ class DeneyYoneticisi:
         ham = veri_yukle(cfg, "skab")
         seeds = self.seeds[:seed_limit] if seed_limit else self.seeds
         kayitlar: list[dict] = []
+        unseen_kayit: list[dict] = []
         mcnemar_birikim = {"y": [], "auto": [], "dl": []}
+        ref_f1ler: list[float] = []          # referans DL'in fold bazli orijinal F1'leri
         ref_dl = self.dl_modeller[-1]   # McNemar referansi (genelde cnn1d)
 
         foldlar = list(skab_foldlar(ham, sk.fold_sayisi, sk.fold_tohumu))
@@ -118,10 +143,15 @@ class DeneyYoneticisi:
 
             # Otomata (deterministik): fold basina bir kez
             seed_ayarla(seeds[0])
+            t_egitim = time.perf_counter()
             auto = self._model_olustur("automata").egit(g_tr, g_val)
+            auto_egitim_suresi = time.perf_counter() - t_egitim
             novelty = len(auto.unseen_konumlar(g_unseen))   # raporlama icin novelty sayisi
+            unseen_kayit.append({"veri_seti": "SKAB", "fold": fold_i,
+                                 **auto.unseen_analizi(g_unseen, g_test)})
             a_kayit, a_eslesme = self._senaryolar(auto, "automata", "SKAB", fold_i, -1,
-                                                  g_test, g_gurultu, g_unseen)
+                                                  g_test, g_gurultu, g_unseen,
+                                                  egitim_suresi=auto_egitim_suresi)
             kayitlar.extend(a_kayit)
 
             # Derin ogrenme: her seed icin
@@ -129,12 +159,16 @@ class DeneyYoneticisi:
             for seed in seeds:
                 for mimari in self.dl_modeller:
                     seed_ayarla(seed)
+                    t_egitim = time.perf_counter()
                     model = self._model_olustur(mimari).egit(g_tr, g_val)
+                    egitim_suresi = time.perf_counter() - t_egitim
                     d_kayit, d_eslesme = self._senaryolar(model, mimari, "SKAB", fold_i, seed,
-                                                          g_test, g_gurultu, g_unseen)
+                                                          g_test, g_gurultu, g_unseen,
+                                                          egitim_suresi=egitim_suresi)
                     kayitlar.extend(d_kayit)
                     if mimari == ref_dl and seed == seeds[0]:
                         dl_ref_eslesme = d_eslesme
+                        ref_f1ler.append(self._orijinal_f1(d_kayit))
 
             # McNemar verisi (otomata vs referans DL, ayni fold test noktalari)
             if a_eslesme is not None and dl_ref_eslesme is not None:
@@ -147,8 +181,8 @@ class DeneyYoneticisi:
             print(f"  [SKAB] fold {fold_i+1}/{len(foldlar)} bitti "
                   f"({time.time()-t0:.1f}s, otomata durum={auto.oto.K}, novelty={novelty})")
 
-        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "SKAB", "automata", ref_dl)
-        return kayitlar, mcnemar
+        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "SKAB", "automata", ref_dl, ref_f1ler)
+        return kayitlar, mcnemar, unseen_kayit
 
     # ---- BATADAL: zaman sirali tek bolme ----
     def batadal_calistir(self, seed_limit: int | None = None):
@@ -157,7 +191,7 @@ class DeneyYoneticisi:
         ham = veri_yukle(cfg, "batadal")
         seeds = self.seeds[:seed_limit] if seed_limit else self.seeds
         n = ham.X.shape[0]
-        tr, val, test = zaman_sirali_bol(n, bc.egitim_orani, bc.dogrulama_orani)
+        tr, val, test = zaman_sirali_bol(n, bc.egitim_orani, bc.dogrulama_orani, bc.test_orani)
         seg = np.zeros(n, dtype=int)
         on = OnIslemci(cfg).fit(ham.X[tr])
 
@@ -171,13 +205,19 @@ class DeneyYoneticisi:
 
         kayitlar: list[dict] = []
         mcnemar_birikim = {"y": [], "auto": [], "dl": []}
+        ref_f1ler: list[float] = []          # referans DL'in orijinal F1'i (dejenere kontrolu)
         ref_dl = self.dl_modeller[-1]
 
         seed_ayarla(seeds[0])
+        t_egitim = time.perf_counter()
         auto = self._model_olustur("automata").egit(g_tr, g_val)
+        auto_egitim_suresi = time.perf_counter() - t_egitim
         novelty = len(auto.unseen_konumlar(g_unseen))
+        unseen_kayit = [{"veri_seti": "BATADAL", "fold": 0,
+                         **auto.unseen_analizi(g_unseen, g_test)}]
         a_kayit, a_eslesme = self._senaryolar(auto, "automata", "BATADAL", 0, -1,
-                                              g_test, g_gurultu, g_unseen)
+                                              g_test, g_gurultu, g_unseen,
+                                              egitim_suresi=auto_egitim_suresi)
         kayitlar.extend(a_kayit)
         print(f"  [BATADAL] otomata bitti (durum={auto.oto.K}, novelty={novelty})")
 
@@ -186,12 +226,16 @@ class DeneyYoneticisi:
             for mimari in self.dl_modeller:
                 t0 = time.time()
                 seed_ayarla(seed)
+                t_egitim = time.perf_counter()
                 model = self._model_olustur(mimari).egit(g_tr, g_val)
+                egitim_suresi = time.perf_counter() - t_egitim
                 d_kayit, d_eslesme = self._senaryolar(model, mimari, "BATADAL", 0, seed,
-                                                      g_test, g_gurultu, g_unseen)
+                                                      g_test, g_gurultu, g_unseen,
+                                                      egitim_suresi=egitim_suresi)
                 kayitlar.extend(d_kayit)
                 if mimari == ref_dl and seed == seeds[0]:
                     dl_ref_eslesme = d_eslesme
+                    ref_f1ler.append(self._orijinal_f1(d_kayit))
                 print(f"  [BATADAL] {mimari} seed={seed} bitti ({time.time()-t0:.1f}s)")
 
         if a_eslesme is not None and dl_ref_eslesme is not None:
@@ -201,10 +245,17 @@ class DeneyYoneticisi:
             mcnemar_birikim["y"].append(yt)
             mcnemar_birikim["auto"].append(pa)
             mcnemar_birikim["dl"].append(pb)
-        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "BATADAL", "automata", ref_dl)
-        return kayitlar, mcnemar
+        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "BATADAL", "automata", ref_dl, ref_f1ler)
+        return kayitlar, mcnemar, unseen_kayit
 
-    def _mcnemar_hesapla(self, birikim, veri_seti, a_ad, b_ad):
+    def _mcnemar_hesapla(self, birikim, veri_seti, a_ad, b_ad, ref_f1ler=None):
+        """Birikmis kararlardan McNemar testini hesaplar ve dejenere durumu isaretler.
+
+        Referans DL'in orijinal-senaryo F1 ortalamasi yapilandirilabilir esigin
+        altindaysa (orn. BATADAL'da tum DL F1~0), test ``yorum_disi`` olarak
+        isaretlenir: ham accuracy her seye "normal" diyen dejenere modeli kayirir,
+        bu yuzden McNemar bu veri setinde anlamli yorumlanamaz (SKAB'da gecerli).
+        """
         if not birikim["y"]:
             return None
         yt = np.concatenate(birikim["y"])
@@ -212,6 +263,16 @@ class DeneyYoneticisi:
         pb = np.concatenate(birikim["dl"])
         sonuc = mcnemar_testi(yt, pa, pb)
         sonuc.update({"veri_seti": veri_seti, "model_a": a_ad, "model_b": b_ad})
+        ref_f1 = float(np.mean(ref_f1ler)) if ref_f1ler else float("nan")
+        dejenere = bool(np.isfinite(ref_f1) and ref_f1 < self.mcnemar_dejenere_esik)
+        sonuc.update({
+            "referans_dl_f1": ref_f1,
+            "yorum_disi": dejenere,
+            "dejenere_neden": (
+                "referans DL orijinal-senaryo F1 dejenere esiginin altinda "
+                "(tum DL ~0); ham accuracy dejenere modeli kayirir, McNemar yorum disi"
+            ) if dejenere else "",
+        })
         return sonuc
 
     # ---- parametre duyarlilik analizi (otomata, SKAB) ----
@@ -249,6 +310,21 @@ class DeneyYoneticisi:
                 print(f"  [tarama] w={w} a={a} F1={np.mean(f1ler):.3f} "
                       f"durum={np.mean(durumlar):.1f} yogunluk={np.mean(yogunluklar):.3f}")
         return kayitlar
+
+    @staticmethod
+    def _calisma_sureleri(df: pd.DataFrame) -> pd.DataFrame:
+        """Model+veri bazli ortalama egitim/cikarim suresi (EK Tablo5).
+
+        Egitim suresi modelin tum senaryo satirlarinda ayni deger olarak tasinir;
+        cikarim suresi yalniz 'orijinal' senaryoda olculur. Ortalama seed/fold
+        uzerinden alinir (otomata deterministik -> tek deger).
+        """
+        if "egitim_suresi_sn" not in df.columns:
+            return pd.DataFrame()
+        egit = df.groupby(["veri_seti", "model"])["egitim_suresi_sn"].mean()
+        orij = df[df.senaryo == "orijinal"]
+        cikar = orij.groupby(["veri_seti", "model"])["cikarim_suresi_sn"].mean()
+        return pd.concat([egit, cikar], axis=1).reset_index()
 
     # ---- ozet ve istatistik ----
     def _ozetle(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -293,19 +369,28 @@ class DeneyYoneticisi:
         seed_limit = 1 if hizli else None
         self._config_anlik_goruntu()
         print("== SKAB deneyleri ==")
-        skab_kayit, skab_mcnemar = self.skab_calistir(fold_limit, seed_limit)
+        skab_kayit, skab_mcnemar, skab_unseen = self.skab_calistir(fold_limit, seed_limit)
         print("== BATADAL deneyleri ==")
-        bat_kayit, bat_mcnemar = self.batadal_calistir(seed_limit)
+        bat_kayit, bat_mcnemar, bat_unseen = self.batadal_calistir(seed_limit)
 
         df = pd.DataFrame(skab_kayit + bat_kayit)
         df.to_csv(os.path.join(self.cikti, "olcumler.csv"), index=False)
         ozet = self._ozetle(df)
         ozet.to_csv(os.path.join(self.cikti, "ozet.csv"), index=False)
 
-        istatistik = {
-            "wilcoxon": self._wilcoxon(df, "SKAB"),
-            "mcnemar": [s for s in (skab_mcnemar, bat_mcnemar) if s is not None],
-        }
+        # VI.A sozluk-disi yonetim metrikleri (yalniz otomata; DL'de kavramsal karsiligi yok)
+        unseen_df = pd.DataFrame(skab_unseen + bat_unseen)
+        unseen_df.to_csv(os.path.join(self.cikti, "unseen_analizi.csv"), index=False)
+
+        # Calisma sureleri (EK Tablo5): model+veri bazli ortalama egitim/cikarim suresi
+        self._calisma_sureleri(df).to_csv(
+            os.path.join(self.cikti, "calisma_sureleri.csv"), index=False)
+
+        istatistik: dict[str, list] = {}
+        if "wilcoxon" in self.istatistik_testleri:
+            istatistik["wilcoxon"] = self._wilcoxon(df, "SKAB")
+        if "mcnemar" in self.istatistik_testleri:
+            istatistik["mcnemar"] = [s for s in (skab_mcnemar, bat_mcnemar) if s is not None]
         pd.Series(istatistik).to_json(os.path.join(self.cikti, "istatistik_testleri.json"),
                                       force_ascii=False, indent=2)
 

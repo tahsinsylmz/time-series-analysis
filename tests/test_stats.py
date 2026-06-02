@@ -56,3 +56,13 @@ def test_hizala_ortak_konumlar():
     assert yt.tolist() == [1, 1]
     assert pa.tolist() == [0, 1]          # tahmin_a[2], tahmin_a[3]
     assert pb.tolist() == [0, 1]          # tahmin_b[2], tahmin_b[3]
+
+
+def test_mcnemar_cikti_anahtarlari_temel():
+    # Saf mcnemar_testi temel anahtarlari uretir; dejenere bayragi (yorum_disi)
+    # runner katmaninda (_mcnemar_hesapla) eklenir. Bu test temel sozlesmeyi korur.
+    y = np.ones(20, dtype=int)
+    a = np.ones(20, dtype=int)
+    b = np.zeros(20, dtype=int)
+    s = mcnemar_testi(y, a, b)
+    assert {"istatistik", "p_deger", "yalniz_a_dogru", "yalniz_b_dogru", "n"}.issubset(s)
