@@ -54,7 +54,7 @@ def _batadal_bolme(cfg):
     bc = cfg.veri_setleri.batadal
     ham = veri_yukle(cfg, "batadal")
     n = ham.X.shape[0]
-    tr, val, test = zaman_sirali_bol(n, bc.egitim_orani, bc.dogrulama_orani)
+    tr, val, test = zaman_sirali_bol(n, bc.egitim_orani, bc.dogrulama_orani, bc.test_orani)
     seg = np.zeros(n, dtype=int)
     on = OnIslemci(cfg).fit(ham.X[tr])
     g = lambda idx: temiz_girdi(on, ham.X[idx], ham.y[idx], seg[idx])
@@ -80,11 +80,14 @@ def main() -> None:
     model = OtomataAnomaliModeli(cfg).egit(g_tr, g_val)
     aciklayici = OtomataAciklayici(model)
     # Cesitli set: en anomalik noktalar + bir dogru-pozitif + bir guvenli normal
-    aciklamalar = aciklayici.secili_ornekler(g_test, k_anomali=args.k)
+    # + g_unseen'den ZORLA bir sozluk-disi (status='unseen') ornek (X.E/X.F).
+    aciklamalar = aciklayici.secili_ornekler(g_test, k_anomali=args.k, ek_veri=g_unseen)
     # Benzerlik tabanli ozet: unseen oruntu mesafeleri (kaydirilmis senaryoda anlamli)
     mesafe_ozeti = aciklayici.unseen_mesafe_ozeti(g_unseen)
 
-    cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini, "aciklamalar")
+    # Her veri seti kendi alt dizinine yazilir (skab esigi dejenere -> tum karar=1;
+    # batadal normal (karar=0) ornek uretir; ikisi birlikte X.E/X.F'i tam kapsar).
+    cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini, "aciklamalar", args.veri)
     os.makedirs(cikti, exist_ok=True)
     for i, ack in enumerate(aciklamalar, start=1):
         with open(os.path.join(cikti, f"ornek_{i:02d}.json"), "w", encoding="utf-8") as f:
