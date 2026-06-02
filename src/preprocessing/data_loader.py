@@ -57,8 +57,10 @@ def _eksikleri_doldur(
     - ``grup_sutunu`` verilirse (SKAB) doldurma yalnizca o grubun (dosyanin)
       icinde yapilir; dosya sinirlarini asmaz, boylece bir dosyanin degeri baska
       bir dosyaya (ve dolayisiyla baska bir fold'a) tasinmaz.
-    - ``grup_sutunu`` yoksa (BATADAL, zaman sirali) interpolasyon yalniz ileri-yon
-      uygulanir; gelecekteki (test) degerler gecmise (train) tasinmaz.
+    - ``grup_sutunu`` yoksa (BATADAL, zaman sirali) doldurma YALNIZ nedensel
+      (ileri-yon) yapilir; geri-doldurma (bfill) kullanilmaz, boylece gelecekteki
+      (test) degerler gecmise (train) tasinmaz. BATADAL kaynak dosyasinda bastaki
+      deger gecerli oldugundan ileri-yon doldurma tum bosluklari kapatir.
     """
     strateji = str(strateji).lower()
     if strateji not in ("interpolate", "ffill"):
@@ -74,7 +76,8 @@ def _eksikleri_doldur(
             blok = blok.interpolate(method="linear", limit_direction=yon)
         if iki_yon:
             return blok.bfill().ffill()
-        return blok.ffill().bfill()
+        # Nedensel: yalniz ileri-yon doldurma (gelecekten gecmise sizinti yok).
+        return blok.ffill()
 
     if grup_sutunu is not None:
         parcalar = []
@@ -85,6 +88,9 @@ def _eksikleri_doldur(
         df = pd.concat(parcalar).sort_index()
     else:
         df[sutunlar] = _doldur(df[sutunlar], iki_yon=False)
+    assert not df[sutunlar].isna().any().any(), (
+        "Eksik veri doldurma sonrasi model-girdisi sutunlarinda NaN kaldi."
+    )
     return df
 
 
