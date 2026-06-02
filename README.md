@@ -146,7 +146,16 @@ bir güven skoru. Örnek için: `python -m scripts.demo_explain`
 
 - SKAB'da derin öğrenme açık ara önde (F1 ≈ 0,87–0,88 vs otomata 0,52). Otomata
   **yüksek recall (0,97) – düşük precision (0,36)** profiline sahip: anomalilerin
-  neredeyse tümünü yakalar ama çok yanlış alarm üretir.
+  neredeyse tümünü yakalar ama çok yanlış alarm üretir. Bu profil bir eşik hatası
+  **değildir**: doğrulama bölmesinde F1'i maksimize eden eşik (bkz. §4), otomatanın
+  SKAB'da ürettiği skorlar normal ve anomali noktaları yeterince **ayrıştıramadığı**
+  için çoğu noktayı anomali işaretleyen bir noktada oturur. 5 kattan **3'ünde (kat 0,
+  3, 4)** F1-optimal eşik tüm test noktalarını anomali işaretler (recall = 1,0,
+  precision = sınıf taban oranı ≈ 0,34); kalan 2 katta recall 0,88–0,98 aralığındadır.
+  Uç skor adaylarını dışlayan daha tutucu bir eşik bu katlarda F1'i **düşürür**
+  (parametre taramasında en iyi yapılandırma da F1 ≈ 0,52 mertebesindedir); dolayısıyla
+  bu davranış, modelin SKAB'daki ayrıştırma sınırını dürüstçe yansıtan F1-optimal
+  seçimin sonucudur.
 - BATADAL herkes için zordur (küçük, çok dengesiz, eğitim/test dağılımı farklı).
   **1D-CNN F1 = 0'a düşer (seçilen eşikle hiç anomali işaretlemez)**; üstelik
   `roc_auc ≈ 0,05` (5 tohum ort.) salt çoğunluk-sınıfı çöküşünden (≈ 0,50)

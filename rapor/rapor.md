@@ -196,8 +196,17 @@ hangi yaklaşımın ne zaman tercih edilebileceğini niceliksel olarak ortaya ko
 ## 7. Sınırlılıklar ve Gelecek Çalışma
 
 Otomatanın SKAB'daki düşük precision'ı, eşik seçiminin ve global z-normalizasyonun
-birlikte yarattığı yüksek-recall rejiminden kaynaklanır; pencere-bazlı normalizasyon
-veya çok boyutlu otomata genişlemeleri incelenebilir. BATADAL'da tek PC bileşeni
+birlikte yarattığı yüksek-recall rejiminden kaynaklanır. Bu rejim bir eşik *hatası*
+değil, dürüst bir F1-optimal seçimin sonucudur: eşik doğrulama bölmesinde F1'i
+maksimize edecek biçimde seçilir (§3) ve otomatanın SKAB'da ürettiği skorlar normal
+ile anomali noktalarını yeterince ayrıştıramadığından, optimal eşik 5 kattan 3'ünde
+(kat 0, 3, 4) tüm test noktalarını anomali işaretleyen bir noktada oturur (recall =
+1,0, precision = sınıf taban oranı ≈ 0,34); kalan iki katta recall 0,88–0,98
+aralığındadır. Uç skor adaylarını dışlayan daha tutucu bir eşik bu katlarda F1'i
+düşürürdü; parametre taramasında en iyi yapılandırmanın da F1 ≈ 0,52 mertebesinde
+kalması (§5.5), düşük precision'ın eşikten değil modelin SKAB'daki ayrıştırma gücünden
+kaynaklandığını doğrular. İyileştirme için pencere-bazlı normalizasyon veya çok
+boyutlu otomata genişlemeleri incelenebilir. BATADAL'da tek PC bileşeni
 sınırlı varyans taşıdığından, otomata için çok değişkenli sembolizasyon gelecekte
 denenebilir.
 
