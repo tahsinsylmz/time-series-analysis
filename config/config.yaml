@@ -116,3 +116,4 @@ degerlendirme:
   tek_sinif_esik_persentili: 0.95     # val tek-sinifsa (anomalisiz) esik = skor persentili
   unseen_eslesme_mesafe_esigi: 1      # VI.A Mapping Accuracy: orijinal pattern'e izinli Levenshtein mesafesi
   istatistik_testleri: ["wilcoxon", "mcnemar"]   # calistirilacak anlamlilik testleri
+  mcnemar_dejenere_f1_esigi: 0.01     # referans DL orijinal F1 bu degerin altindaysa McNemar yorum disi (dejenere)

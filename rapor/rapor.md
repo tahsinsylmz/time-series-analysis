@@ -160,10 +160,13 @@ doğruluğu iyileştirmez — sadelik lehine bir bulgu (`fig_parametre_duyarlili
 Wilcoxon testinde otomata vs LSTM/GRU/1B-CNN için p = 0,0625 (n=5; 5 katta tutarlı
 yönlü farkın ulaşabileceği en küçük değer); derin öğrenme tüm katlarda otomatadan
 yüksektir. McNemar (SKAB, otomata vs 1B-CNN): istatistik = 3296,4, p ≈ 0 (yalnız
-otomatanın doğru olduğu 415, yalnız 1B-CNN'in 4400 nokta). McNemar (BATADAL):
-istatistik = 25,3, p = 4,9·10⁻⁷; burada ham doğruluk her şeye "normal" diyen
-1B-CNN'i kayırır, oysa F1 otomatanın az da olsa gerçek anomali yakaladığını gösterir.
-**Dengesiz veride doğruluk yanıltıcıdır; asıl ölçüt F1/PR'dir.**
+otomatanın doğru olduğu 415, yalnız 1B-CNN'in 4400 nokta); SKAB'da test geçerlidir.
+**McNemar (BATADAL) yorum dışıdır:** bu veri setinde referans derin öğrenme modeli
+(1B-CNN) ve diğer tüm DL modelleri dejenere olup F1 ≈ 0 üretir (her şeye "normal"
+der); bu durumda ham doğruluk üzerinden kurulan McNemar tablosu dejenere modeli
+kayırır ve anlamlı yorumlanamaz. Bu nedenle istatistik çıktısında BATADAL McNemar
+kaydı `yorum_disi: true` bayrağıyla işaretlenir; çıkarımlar yalnızca SKAB McNemar'ı
+üzerinden yapılır. **Dengesiz veride doğruluk yanıltıcıdır; asıl ölçüt F1/PR'dir.**
 
 Görseller: karmaşıklık matrisi, ROC/PR eğrisi (`fig_roc_pr.png`, GRU ROC-AUC ≈ 0,93),
 otomata durum geçiş diyagramı ve geçiş olasılık ısı haritası `results/figurler/`

@@ -50,6 +50,8 @@ class DeneyYoneticisi:
         self.istatistik_testleri = [str(t).lower() for t in cfg.degerlendirme.istatistik_testleri]
         self.cikti = os.path.join(PROJE_KOK, cfg.genel.cikti_dizini)
         os.makedirs(self.cikti, exist_ok=True)
+        # Referans DL F1 bu esigin altindaysa McNemar yorum disi (dejenere) sayilir
+        self.mcnemar_dejenere_esik = float(cfg.degerlendirme.mcnemar_dejenere_f1_esigi)
 
     # ---- model fabrikasi (acik/kapali ilkesi) ----
     def _model_olustur(self, ad: str):
@@ -88,6 +90,18 @@ class DeneyYoneticisi:
             })
         return kayitlar, eslesme
 
+    @staticmethod
+    def _orijinal_f1(kayitlar) -> float:
+        """Bir modelin senaryo kayitlarindan orijinal senaryonun F1'ini cikarir.
+
+        McNemar dejenere kontrolu icin referans DL'in temiz test F1'i gerekir;
+        bu deger zaten _senaryolar ciktisinda mevcuttur (yeniden hesaplanmaz).
+        """
+        for kayit in kayitlar:
+            if kayit.get("senaryo") == "orijinal":
+                return float(kayit.get("f1", float("nan")))
+        return float("nan")
+
     # ---- SKAB: dosya bazli capraz dogrulama ----
     def skab_calistir(self, fold_limit: int | None = None, seed_limit: int | None = None):
         cfg = self.cfg
@@ -97,6 +111,7 @@ class DeneyYoneticisi:
         kayitlar: list[dict] = []
         unseen_kayit: list[dict] = []
         mcnemar_birikim = {"y": [], "auto": [], "dl": []}
+        ref_f1ler: list[float] = []          # referans DL'in fold bazli orijinal F1'leri
         ref_dl = self.dl_modeller[-1]   # McNemar referansi (genelde cnn1d)
 
         foldlar = list(skab_foldlar(ham, sk.fold_sayisi, sk.fold_tohumu))
@@ -137,6 +152,7 @@ class DeneyYoneticisi:
                     kayitlar.extend(d_kayit)
                     if mimari == ref_dl and seed == seeds[0]:
                         dl_ref_eslesme = d_eslesme
+                        ref_f1ler.append(self._orijinal_f1(d_kayit))
 
             # McNemar verisi (otomata vs referans DL, ayni fold test noktalari)
             if a_eslesme is not None and dl_ref_eslesme is not None:
@@ -149,7 +165,7 @@ class DeneyYoneticisi:
             print(f"  [SKAB] fold {fold_i+1}/{len(foldlar)} bitti "
                   f"({time.time()-t0:.1f}s, otomata durum={auto.oto.K}, novelty={novelty})")
 
-        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "SKAB", "automata", ref_dl)
+        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "SKAB", "automata", ref_dl, ref_f1ler)
         return kayitlar, mcnemar, unseen_kayit
 
     # ---- BATADAL: zaman sirali tek bolme ----
@@ -173,6 +189,7 @@ class DeneyYoneticisi:
 
         kayitlar: list[dict] = []
         mcnemar_birikim = {"y": [], "auto": [], "dl": []}
+        ref_f1ler: list[float] = []          # referans DL'in orijinal F1'i (dejenere kontrolu)
         ref_dl = self.dl_modeller[-1]
 
         seed_ayarla(seeds[0])
@@ -196,6 +213,7 @@ class DeneyYoneticisi:
                 kayitlar.extend(d_kayit)
                 if mimari == ref_dl and seed == seeds[0]:
                     dl_ref_eslesme = d_eslesme
+                    ref_f1ler.append(self._orijinal_f1(d_kayit))
                 print(f"  [BATADAL] {mimari} seed={seed} bitti ({time.time()-t0:.1f}s)")
 
         if a_eslesme is not None and dl_ref_eslesme is not None:
@@ -205,10 +223,17 @@ class DeneyYoneticisi:
             mcnemar_birikim["y"].append(yt)
             mcnemar_birikim["auto"].append(pa)
             mcnemar_birikim["dl"].append(pb)
-        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "BATADAL", "automata", ref_dl)
+        mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "BATADAL", "automata", ref_dl, ref_f1ler)
         return kayitlar, mcnemar, unseen_kayit
 
-    def _mcnemar_hesapla(self, birikim, veri_seti, a_ad, b_ad):
+    def _mcnemar_hesapla(self, birikim, veri_seti, a_ad, b_ad, ref_f1ler=None):
+        """Birikmis kararlardan McNemar testini hesaplar ve dejenere durumu isaretler.
+
+        Referans DL'in orijinal-senaryo F1 ortalamasi yapilandirilabilir esigin
+        altindaysa (orn. BATADAL'da tum DL F1~0), test ``yorum_disi`` olarak
+        isaretlenir: ham accuracy her seye "normal" diyen dejenere modeli kayirir,
+        bu yuzden McNemar bu veri setinde anlamli yorumlanamaz (SKAB'da gecerli).
+        """
         if not birikim["y"]:
             return None
         yt = np.concatenate(birikim["y"])
@@ -216,6 +241,16 @@ class DeneyYoneticisi:
         pb = np.concatenate(birikim["dl"])
         sonuc = mcnemar_testi(yt, pa, pb)
         sonuc.update({"veri_seti": veri_seti, "model_a": a_ad, "model_b": b_ad})
+        ref_f1 = float(np.mean(ref_f1ler)) if ref_f1ler else float("nan")
+        dejenere = bool(np.isfinite(ref_f1) and ref_f1 < self.mcnemar_dejenere_esik)
+        sonuc.update({
+            "referans_dl_f1": ref_f1,
+            "yorum_disi": dejenere,
+            "dejenere_neden": (
+                "referans DL orijinal-senaryo F1 dejenere esiginin altinda "
+                "(tum DL ~0); ham accuracy dejenere modeli kayirir, McNemar yorum disi"
+            ) if dejenere else "",
+        })
         return sonuc
 
     # ---- parametre duyarlilik analizi (otomata, SKAB) ----

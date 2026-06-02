@@ -200,10 +200,12 @@ birlikte gösterilir: **F1**, **durum sayısı** ve **geçiş yoğunluğu**.
 - **McNemar (SKAB, otomata vs 1D-CNN):** istatistik = 3296,4, p ≈ 0; yalnız
   otomatanın doğru olduğu 415 nokta, yalnız 1D-CNN'in doğru olduğu 4400 nokta —
   SKAB'da derin öğrenme net üstün.
-- **McNemar (BATADAL):** istatistik = 25,3, p = 4,9·10⁻⁷. Burada ham *doğruluk*
-  her şeye "normal" diyen 1D-CNN'i kayırır; oysa F1 otomatanın az da olsa gerçek
-  anomali yakaladığını, 1D-CNN'in hiç yakalamadığını gösterir. **Dengesiz veride
-  accuracy yanıltıcıdır; asıl ölçüt F1/PR'dir.**
+- **McNemar (BATADAL) — yorum dışı:** Bu veri setinde referans derin öğrenme modeli
+  (1D-CNN) ve diğer tüm DL modelleri dejenere olup F1 ≈ 0 üretir (her şeye "normal"
+  der). Ham *doğruluk* üzerinden kurulan McNemar tablosu bu dejenere modeli kayırdığı
+  için sonuç anlamlı yorumlanamaz; istatistik çıktısında BATADAL McNemar kaydı
+  `yorum_disi: true` bayrağıyla işaretlenir. Çıkarımlar yalnızca **SKAB McNemar'ı**
+  üzerinden yapılır. **Dengesiz veride accuracy yanıltıcıdır; asıl ölçüt F1/PR'dir.**
 
 ![Karmaşıklık matrisi](results/figurler/fig_karmasiklik_matrisi.png)
 
