@@ -1,6 +1,7 @@
 """Metrik ve karar esigi birim testleri."""
 import numpy as np
 import pytest
+from sklearn.metrics import f1_score
 
 from src.experiments.metrics import ikili_metrikler
 from src.utils.esik import f1_maksimize_esik
@@ -60,10 +61,20 @@ def test_esik_tek_sinif_persentil_fallback():
     assert esik > np.median(skor)
 
 
-def test_esik_aday_sayisi_sinirlamasi():
-    # aday_sayisi'ndan cok benzersiz skor -> nicelik ile ornekler, gecerli deger doner
+def test_esik_aday_sayisi_ile_ornekleme_ayristirir():
+    # aday_sayisi'ndan COK benzersiz skor -> nicelik (quantile) ile ornekleme yapilir;
+    # yine de ayrilabilir veride esik siniflari ANLAMLI ayirir (tautoloji degil).
     rng = np.random.default_rng(0)
-    skor = rng.random(1000)
-    y = (skor > 0.5).astype(int)
+    normal = rng.uniform(0.0, 0.4, size=500)
+    anomali = rng.uniform(0.6, 1.0, size=500)
+    skor = np.concatenate([normal, anomali])
+    y = np.concatenate([np.zeros(500, dtype=int), np.ones(500, dtype=int)])
+    # benzersiz skor sayisi aday_sayisi'ndan cok daha fazla -> ornekleme devrede
+    assert np.unique(skor).size > 50
+
     esik = f1_maksimize_esik(skor, y, aday_sayisi=50)
-    assert skor.min() <= esik <= skor.max()
+    tahmin = (skor >= esik).astype(int)
+    assert f1_score(y, tahmin) > 0.9
+    # esik gercekten ayristirir: normallerin cogu altinda, anomalilerin cogu ustunde
+    assert (skor[y == 0] < esik).mean() > 0.9
+    assert (skor[y == 1] >= esik).mean() > 0.9
