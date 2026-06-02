@@ -57,13 +57,10 @@ class DeneyYoneticisi:
             return OtomataAnomaliModeli(self.cfg)
         return DerinOgrenmeModeli(self.cfg, ad)
 
-    # ---- tek bir degerlendirme (opsiyonel konum maskesi) ----
-    def _degerlendir(self, model, girdi, izin: np.ndarray | None = None):
+    # ---- tek bir degerlendirme ----
+    def _degerlendir(self, model, girdi):
         skorlar, konumlar = model.skor(girdi)
         tahmin = (skorlar >= model.esik).astype(int)
-        if izin is not None:
-            maske = np.isin(konumlar, izin) if len(izin) else np.zeros(len(konumlar), bool)
-            skorlar, konumlar, tahmin = skorlar[maske], konumlar[maske], tahmin[maske]
         y = girdi.y[konumlar]
         return ikili_metrikler(y, tahmin, skorlar, self.pozitif_sinif), konumlar, tahmin, y
 
@@ -98,6 +95,7 @@ class DeneyYoneticisi:
         ham = veri_yukle(cfg, "skab")
         seeds = self.seeds[:seed_limit] if seed_limit else self.seeds
         kayitlar: list[dict] = []
+        unseen_kayit: list[dict] = []
         mcnemar_birikim = {"y": [], "auto": [], "dl": []}
         ref_dl = self.dl_modeller[-1]   # McNemar referansi (genelde cnn1d)
 
@@ -122,6 +120,8 @@ class DeneyYoneticisi:
             seed_ayarla(seeds[0])
             auto = self._model_olustur("automata").egit(g_tr, g_val)
             novelty = len(auto.unseen_konumlar(g_unseen))   # raporlama icin novelty sayisi
+            unseen_kayit.append({"veri_seti": "SKAB", "fold": fold_i,
+                                 **auto.unseen_analizi(g_unseen, g_test)})
             a_kayit, a_eslesme = self._senaryolar(auto, "automata", "SKAB", fold_i, -1,
                                                   g_test, g_gurultu, g_unseen)
             kayitlar.extend(a_kayit)
@@ -150,7 +150,7 @@ class DeneyYoneticisi:
                   f"({time.time()-t0:.1f}s, otomata durum={auto.oto.K}, novelty={novelty})")
 
         mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "SKAB", "automata", ref_dl)
-        return kayitlar, mcnemar
+        return kayitlar, mcnemar, unseen_kayit
 
     # ---- BATADAL: zaman sirali tek bolme ----
     def batadal_calistir(self, seed_limit: int | None = None):
@@ -178,6 +178,8 @@ class DeneyYoneticisi:
         seed_ayarla(seeds[0])
         auto = self._model_olustur("automata").egit(g_tr, g_val)
         novelty = len(auto.unseen_konumlar(g_unseen))
+        unseen_kayit = [{"veri_seti": "BATADAL", "fold": 0,
+                         **auto.unseen_analizi(g_unseen, g_test)}]
         a_kayit, a_eslesme = self._senaryolar(auto, "automata", "BATADAL", 0, -1,
                                               g_test, g_gurultu, g_unseen)
         kayitlar.extend(a_kayit)
@@ -204,7 +206,7 @@ class DeneyYoneticisi:
             mcnemar_birikim["auto"].append(pa)
             mcnemar_birikim["dl"].append(pb)
         mcnemar = self._mcnemar_hesapla(mcnemar_birikim, "BATADAL", "automata", ref_dl)
-        return kayitlar, mcnemar
+        return kayitlar, mcnemar, unseen_kayit
 
     def _mcnemar_hesapla(self, birikim, veri_seti, a_ad, b_ad):
         if not birikim["y"]:
@@ -295,14 +297,18 @@ class DeneyYoneticisi:
         seed_limit = 1 if hizli else None
         self._config_anlik_goruntu()
         print("== SKAB deneyleri ==")
-        skab_kayit, skab_mcnemar = self.skab_calistir(fold_limit, seed_limit)
+        skab_kayit, skab_mcnemar, skab_unseen = self.skab_calistir(fold_limit, seed_limit)
         print("== BATADAL deneyleri ==")
-        bat_kayit, bat_mcnemar = self.batadal_calistir(seed_limit)
+        bat_kayit, bat_mcnemar, bat_unseen = self.batadal_calistir(seed_limit)
 
         df = pd.DataFrame(skab_kayit + bat_kayit)
         df.to_csv(os.path.join(self.cikti, "olcumler.csv"), index=False)
         ozet = self._ozetle(df)
         ozet.to_csv(os.path.join(self.cikti, "ozet.csv"), index=False)
+
+        # VI.A sozluk-disi yonetim metrikleri (yalniz otomata; DL'de kavramsal karsiligi yok)
+        unseen_df = pd.DataFrame(skab_unseen + bat_unseen)
+        unseen_df.to_csv(os.path.join(self.cikti, "unseen_analizi.csv"), index=False)
 
         istatistik: dict[str, list] = {}
         if "wilcoxon" in self.istatistik_testleri:

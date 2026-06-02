@@ -9,6 +9,7 @@ results/*
 !results/olcumler.csv
 !results/ozet.csv
 !results/parametre_taramasi_skab.csv
+!results/unseen_analizi.csv
 !results/istatistik_testleri.json
 !results/kullanilan_config.yaml
 

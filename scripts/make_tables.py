@@ -9,6 +9,7 @@ Uretilen tablolar (ister IX.A):
   3. tablo_dayaniklilik.md    - senaryo bazli (orijinal/gurultu/unseen) F1 + AUC
   4. tablo_batadal.md         - BATADAL zaman-sirali test (seed ort+std)
   5. tablo_istatistik.md      - Wilcoxon ve McNemar testleri
+  6. tablo_unseen.md          - VI.A sozluk-disi Detection Rate / Mapping Accuracy (otomata)
 
 ozet.csv kat ve seed varyansini tek std'de karistirir; bu script ikisini AYIRIR
 (SKAB icin kat-bazli varyasyon ile seed-bazli varyasyon ayri raporlanir).
@@ -176,6 +177,41 @@ def tablo_istatistik(ist: dict) -> str:
     return "\n".join(parcalar)
 
 
+# ---- 6) unseen (VI.A) Detection Rate / Mapping Accuracy ----
+def tablo_unseen(df) -> str:
+    """Otomata sozluk-disi (VI.A) yonetim metrikleri: Detection Rate / Mapping Accuracy."""
+    if df is None or df.empty:
+        return "Unseen (sozluk-disi) analiz verisi yok.\n"
+    basliklar = ["Veri", "Kat", "Toplam konum", "Sozluk-disi",
+                 "Detection Rate", "Map.Acc (tam)", "Map.Acc (mesafe<=1)"]
+    satirlar = []
+    for _, r in df.iterrows():
+        satirlar.append([
+            str(r["veri_seti"]), f"{int(r['fold'])+1}",
+            f"{int(r['toplam_konum'])}", f"{int(r['sozluk_disi_konum'])}",
+            f"{float(r['detection_rate']):.3f}",
+            f"{float(r['mapping_accuracy_tam']):.3f}",
+            f"{float(r['mapping_accuracy_yumusak']):.3f}",
+        ])
+    # Veri seti bazli ortalama satiri
+    for veri in df["veri_seti"].unique():
+        alt = df[df.veri_seti == veri]
+        satirlar.append([
+            f"**{veri} ort.**", "-",
+            f"{alt['toplam_konum'].mean():.0f}", f"{alt['sozluk_disi_konum'].mean():.0f}",
+            f"**{alt['detection_rate'].mean():.3f}**",
+            f"**{alt['mapping_accuracy_tam'].mean():.3f}**",
+            f"**{alt['mapping_accuracy_yumusak'].mean():.3f}**",
+        ])
+    aciklama = ("\n*VI.A sozluk-disi (out-of-vocabulary) yonetimi (yalniz otomata). "
+                "Detection Rate = sozluk-disi pattern tasiyan test konumu orani; "
+                "Mapping Accuracy = Levenshtein ile eslenen en yakin bilinen pattern'in, "
+                "genlik kaydirmasindan ONCEKI gercek pattern'e dogrulugu (tam esitlik / "
+                "mesafe<=1). Derin ogrenme modellerinde kavramsal karsiligi yoktur.*\n")
+    return "## Sozluk-disi Yonetimi - Detection Rate / Mapping Accuracy (VI.A)\n\n" + \
+           _md_tablo(basliklar, satirlar) + aciklama
+
+
 # ---- LaTeX (ana SKAB kat tablosu) ----
 def latex_skab_fold(df: pd.DataFrame) -> str:
     alt = df[(df.veri_seti == "SKAB") & (df.senaryo == "orijinal")]
@@ -209,6 +245,8 @@ def main() -> None:
     df = pd.read_csv(os.path.join(sonuc, "olcumler.csv"))
     ist_yol = os.path.join(sonuc, "istatistik_testleri.json")
     ist = json.load(open(ist_yol, encoding="utf-8")) if os.path.exists(ist_yol) else {}
+    unseen_yol = os.path.join(sonuc, "unseen_analizi.csv")
+    unseen_df = pd.read_csv(unseen_yol) if os.path.exists(unseen_yol) else None
 
     _yaz(cikti, "tablo_skab_fold.md", tablo_skab_fold(df))
     _yaz(cikti, "tablo_skab_seed.md", tablo_skab_seed(df))
@@ -216,6 +254,7 @@ def main() -> None:
          tablo_dayaniklilik(df, "SKAB") + "\n" + tablo_dayaniklilik(df, "BATADAL"))
     _yaz(cikti, "tablo_batadal.md", tablo_batadal(df))
     _yaz(cikti, "tablo_istatistik.md", tablo_istatistik(ist))
+    _yaz(cikti, "tablo_unseen.md", tablo_unseen(unseen_df))
     _yaz(cikti, "tablo_skab_fold.tex", latex_skab_fold(df))
 
     print(f"\nTum tablolar '{cikti}' dizinine yazildi.")

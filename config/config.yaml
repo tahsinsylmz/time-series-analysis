@@ -114,4 +114,5 @@ degerlendirme:
   pozitif_sinif: 1                    # anomali = pozitif sinif (metriklerde pos_label)
   esik_aday_sayisi: 200               # F1-maksimize esik aramasinda taranan aday sayisi
   tek_sinif_esik_persentili: 0.95     # val tek-sinifsa (anomalisiz) esik = skor persentili
+  unseen_eslesme_mesafe_esigi: 1      # VI.A Mapping Accuracy: orijinal pattern'e izinli Levenshtein mesafesi
   istatistik_testleri: ["wilcoxon", "mcnemar"]   # calistirilacak anlamlilik testleri

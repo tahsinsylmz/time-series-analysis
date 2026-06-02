@@ -6,14 +6,18 @@ PC1 (tek boyut) serisi uzerinde:
 3. NORMAL egitim verisinden frekans tabanli gecis olasiliklari
 4. Test noktasi icin yol olasiligi dusukse anomali (dusuk olasilik = anomali)
 
-Unseen pattern'lar Levenshtein ile en yakin bilinen pattern'a eslenir ve ek
-anomali cezasi alir.
+Sozluk-disi (unseen / out-of-vocabulary) pattern'lar Levenshtein ile en yakin
+bilinen pattern'a eslenir ve ek anomali cezasi alir. ``unseen`` deney senaryosu
+ise genlik kaydirmasiyla (covariate shift) uretilen, dagilim disi noktalardan
+olusur; sozluk-disi yonetiminin sayisal degerlendirmesi ``unseen_analizi`` ile
+Detection Rate ve Mapping Accuracy olarak ayrica raporlanir (VI.A).
 """
 from __future__ import annotations
 
 import numpy as np
 
 from src.models.automata.automaton import OlasiliksalOtomata
+from src.models.automata.levenshtein import levenshtein_mesafe
 from src.models.automata.paa import paa_segment
 from src.models.automata.sax import sax_kesim_noktalari, sax_sembolize
 from src.models.base import AnomaliModeli, ModelGirdisi
@@ -182,3 +186,55 @@ class OtomataAnomaliModeli(AnomaliModeli):
                 if kelimeler[t] not in self.oto.sozluk:
                     konumlar.append(bas + t + L - 1)
         return np.asarray(konumlar, dtype=int)
+
+    def unseen_analizi(self, unseen: ModelGirdisi, orijinal: ModelGirdisi) -> dict:
+        """VI.A sozluk-disi (out-of-vocabulary) yonetim metrikleri.
+
+        ``unseen`` genlik kaydirilmis (covariate shift) girdi, ``orijinal`` ise
+        ayni test noktalarinin kaydirilmamis halidir. Iki metrik dondurulur:
+
+        - Detection Rate: degerlendirilebilir test konumlarindan kac tanesinin
+          SAX pattern'i egitim sozlugunde bulunmadigi (sozluk-disi tespit orani).
+        - Mapping Accuracy: her sozluk-disi pattern Levenshtein ile en yakin
+          bilinen pattern'a eslenir; bu eslesmenin AYNI konumun kaydirma-oncesi
+          (orijinal) pattern'ine olan dogrulugu. ``tam`` = eslenen pattern
+          orijinal pattern'e birebir esit oran; ``yumusak`` = orijinal pattern'e
+          Levenshtein mesafesi <= ``esik`` olan oran.
+
+        Iki girdi ayni segment yapisina ve uzunluga sahip olmalidir (kaydirma
+        yalnizca genligi degistirir, konumlari degil).
+        """
+        if self.oto is None:
+            raise RuntimeError("Model once egitilmeli (egit).")
+        esik = int(self.cfg.degerlendirme.unseen_eslesme_mesafe_esigi)
+        toplam = 0
+        sozluk_disi = 0
+        tam_eslesme = 0
+        yumusak_eslesme = 0
+        u_bloklar = list(bitisik_bloklar(unseen.segmentler))
+        o_bloklar = list(bitisik_bloklar(orijinal.segmentler))
+        for (u_bas, u_son), (o_bas, o_son) in zip(u_bloklar, o_bloklar):
+            u_kelimeler = self._segment_kelimeleri(self._normalize(unseen.pc1[u_bas:u_son]))
+            o_kelimeler = self._segment_kelimeleri(self._normalize(orijinal.pc1[o_bas:o_son]))
+            ust = min(len(u_kelimeler), len(o_kelimeler))
+            for t in range(self.path_uzunlugu, ust):
+                toplam += 1
+                if u_kelimeler[t] in self.oto.sozluk:
+                    continue
+                sozluk_disi += 1
+                en_yakin = self.oto.pattern_coz(u_kelimeler[t])[2]
+                orijinal_pattern = o_kelimeler[t]
+                if en_yakin == orijinal_pattern:
+                    tam_eslesme += 1
+                if levenshtein_mesafe(en_yakin, orijinal_pattern) <= esik:
+                    yumusak_eslesme += 1
+        detection_rate = (sozluk_disi / toplam) if toplam else 0.0
+        tam_oran = (tam_eslesme / sozluk_disi) if sozluk_disi else 0.0
+        yumusak_oran = (yumusak_eslesme / sozluk_disi) if sozluk_disi else 0.0
+        return {
+            "toplam_konum": int(toplam),
+            "sozluk_disi_konum": int(sozluk_disi),
+            "detection_rate": float(detection_rate),
+            "mapping_accuracy_tam": float(tam_oran),
+            "mapping_accuracy_yumusak": float(yumusak_oran),
+        }

@@ -135,10 +135,17 @@ işe yarar (bkz. `tablo_dayaniklilik.md`, `fig_senaryo_dayaniklilik.png`).
 
 ### 5.4 Unseen Veri Davranışı
 
-`unseen` senaryosunda kazanç kayması sözlük-dışı örüntüler üretir; otomata bunları
-Levenshtein ile en yakın bilinen duruma eşler. Kaydırılmış SKAB test setinde gözlenen
-62 sözlük-dışı örüntünün en yakın bilinene ortalama mesafesi 1,02 (en çok 2)
-olup, eşlemenin küçük düzenlemelerle çalıştığını gösterir.
+İki kavram ayrı tutulur. (1) **`unseen` senaryosu** bir *kovaryant kayma* (covariate
+shift) testidir: kazanç (×1,8) ile ölçeklenmiş test setinin **tamamı** üzerinde F1
+ölçülür; tablolardaki `unseen` sütunu budur. (2) **VI.A sözlük-dışı (out-of-vocabulary)
+yönetimi** ise yalnızca eğitim sözlüğünde bulunmayan örüntülerin nasıl ele alındığını
+ölçer ve `unseen_analizi.csv` ile *ayrı* raporlanır (bkz. Sözlük-dışı Yönetimi tablosu):
+**Detection Rate** (sözlük-dışı örüntü taşıyan test konumu oranı) ve **Mapping Accuracy**
+(Levenshtein ile eşlenen en yakın bilinen örüntünün, kaydırma öncesi gerçek örüntüye
+doğruluğu; tam eşitlik ve mesafe≤1). Kaydırılmış SKAB test setinde gözlenen 62 sözlük-dışı
+örüntünün en yakın bilinene ortalama mesafesi 1,02 (en çok 2) olup, eşlemenin küçük
+düzenlemelerle çalıştığını gösterir. Bu sözlük-dışı yönetimin derin öğrenme modellerinde
+kavramsal bir karşılığı yoktur (yalnızca otomataya özgüdür).
 
 ### 5.5 Parametre Etkileri
 
