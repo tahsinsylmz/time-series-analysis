@@ -46,7 +46,6 @@ on_isleme:
   pca:
     aktif: true
     bilesen_sayisi: 1
-    sadece_otomata: true
     tohum: 0
 senaryolar:
   liste:
@@ -100,14 +99,11 @@ otomata:
     - 5
     - 6
 degerlendirme:
-  metrikler:
-  - accuracy
-  - precision
-  - recall
-  - f1
   pozitif_sinif: 1
   esik_aday_sayisi: 200
   tek_sinif_esik_persentili: 0.95
+  unseen_eslesme_mesafe_esigi: 1
   istatistik_testleri:
   - wilcoxon
   - mcnemar
+  mcnemar_dejenere_f1_esigi: 0.01

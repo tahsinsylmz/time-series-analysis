@@ -1,0 +1,82 @@
+{
+  "konum": 249,
+  "ham_pencere_normalize": [
+    -1.2581,
+    0.1161,
+    -0.0088,
+    -0.0929,
+    -0.0168,
+    -0.8928,
+    0.229,
+    1.4289
+  ],
+  "paa": [
+    -0.571,
+    -0.0509,
+    -0.4548,
+    0.829
+  ],
+  "durum_sax": "abac",
+  "yol_unseen_var": true,
+  "unseen_gecis_sayisi": 1,
+  "status": "unseen",
+  "mapped_to": "aaac",
+  "yol": [
+    "caba",
+    "abbb",
+    "abac"
+  ],
+  "gecisler": [
+    {
+      "kaynak_pattern": "caba",
+      "hedef_pattern": "abbb",
+      "etkin_kaynak": "caba",
+      "etkin_hedef": "abbb",
+      "gecis_olasiligi": 0.0136986301369863,
+      "hedef_unseen": false,
+      "en_yakin_pattern": "abbb",
+      "levenshtein_mesafe": 0
+    },
+    {
+      "kaynak_pattern": "abbb",
+      "hedef_pattern": "abac",
+      "etkin_kaynak": "abbb",
+      "etkin_hedef": "aaac",
+      "gecis_olasiligi": 0.010638297872340425,
+      "hedef_unseen": true,
+      "en_yakin_pattern": "aaac",
+      "levenshtein_mesafe": 1
+    }
+  ],
+  "path_olasiligi": 0.00014573010786461674,
+  "log_olasilik": -8.833754223251395,
+  "unseen_ceza": 1.0,
+  "anomali_skoru": 9.833754223251395,
+  "esik": 7.134413541874083,
+  "karar": 1,
+  "karar_metni": "ANOMALI",
+  "anomali_olasiligi": 0.8154,
+  "guven_skoru": 0.6309,
+  "spec_formati": {
+    "time_step": 249,
+    "state": "abbb",
+    "pattern": "abac",
+    "status": "unseen",
+    "mapped_to": "aaac",
+    "probability": 0.000146,
+    "decision": "anomaly"
+  },
+  "karsit_durum": {
+    "en_beklenen_oruntu": "abbb",
+    "en_beklenen_gecis_olasiligi": 0.085106,
+    "karsit_skor": 6.7543,
+    "karsit_karar_metni": "NORMAL",
+    "karar_degisir_mi": true
+  },
+  "teshis": {
+    "gercek_etiket": 0,
+    "karar_dogru": false
+  },
+  "aciklama_metni": "Pencere sonu durumu 'abac'. Son 2 gecisin yol olasiligi 1.457e-04 (dusuk olasilik = beklenmedik gidisat). 1 gecis egitimde gorulmemis pattern iceriyor; ornegin 'abac' en yakin bilinen 'aaac' pattern'ine Levenshtein=1 uzakliginda, toplam +1.0 ceza eklendi. Toplam anomali skoru 9.83, esik (7.13) degerini astigi icin karar: ANOMALI (guven 0.63).",
+  "kategori": "unseen"
+}

@@ -40,7 +40,10 @@
       "n":7303,
       "veri_seti":"SKAB",
       "model_a":"automata",
-      "model_b":"cnn1d"
+      "model_b":"cnn1d",
+      "referans_dl_f1":0.8853955771,
+      "yorum_disi":false,
+      "dejenere_neden":""
     },
     {
       "istatistik":25.2894736842,
@@ -50,7 +53,10 @@
       "n":269,
       "veri_seti":"BATADAL",
       "model_a":"automata",
-      "model_b":"cnn1d"
+      "model_b":"cnn1d",
+      "referans_dl_f1":0.0,
+      "yorum_disi":true,
+      "dejenere_neden":"referans DL orijinal-senaryo F1 dejenere esiginin altinda (tum DL ~0); ham accuracy dejenere modeli kayirir, McNemar yorum disi"
     }
   ]
 }
