@@ -189,7 +189,13 @@ def fig_gecis_matrisi(model, cikti):
 
 
 # ---- 5) durum gecis diyagrami ----
-def fig_durum_diyagrami(model, cikti, ust_kenar=25):
+def fig_durum_diyagrami(model, cikti, ust_kenar=25, etiketli_kenar=8):
+    """En guclu gecisleri yonlu graf olarak cizer.
+
+    Dugum boyutu kaynak durumun toplam cikis sayisina gore normalize edilir;
+    kenar kalinligi ve saydamligi gecis olasiligina gore olceklenir; en guclu
+    birkac gecise olasilik etiketi eklenir.
+    """
     oto = model.oto
     kenarlar = sorted(oto.gecis_sayim.items(), key=lambda kv: kv[1], reverse=True)[:ust_kenar]
     G = nx.DiGraph()
@@ -197,15 +203,33 @@ def fig_durum_diyagrami(model, cikti, ust_kenar=25):
         G.add_edge(k, h, weight=sayi, olasilik=oto.gecis_olasiligi(k, h))
     if G.number_of_nodes() == 0:
         return
-    boyut = [300 + 40 * oto.kaynak_toplam.get(n, 0) for n in G.nodes()]
+    # dugum boyutu: kaynak_toplam'a gore normalize, ust sinirli
+    max_kaynak = max((oto.kaynak_toplam.get(n, 0) for n in G.nodes()), default=0)
+    bolen = max_kaynak if max_kaynak > 0 else 1
+    boyut = [300 + 1500 * (oto.kaynak_toplam.get(n, 0) / bolen) for n in G.nodes()]
+    # kenar olasiliklari: alpha ve kalinlik icin 0..1 araliginda normalize et
+    olasiliklar = [G[u][v]["olasilik"] for u, v in G.edges()]
+    max_p = max(olasiliklar) if olasiliklar else 1.0
+    p_norm = [(p / max_p if max_p > 0 else 0.0) for p in olasiliklar]
+    kenar_genislik = [1.0 + 5.0 * w for w in p_norm]
+    kenar_alpha = [0.25 + 0.65 * w for w in p_norm]
     fig, ax = plt.subplots(figsize=(8, 7))
     yer = nx.spring_layout(G, seed=42, k=0.9)
-    agirliklar = [G[u][v]["olasilik"] for u, v in G.edges()]
-    nx.draw_networkx_nodes(G, yer, node_size=boyut, node_color="#00798c", alpha=0.85, ax=ax)
+    # dugumler: alpha dusuk ki ustteki oklar gorunsun
+    nx.draw_networkx_nodes(G, yer, node_size=boyut, node_color="#00798c",
+                           alpha=0.55, edgecolors="#004b56", linewidths=0.8, ax=ax)
     nx.draw_networkx_labels(G, yer, font_size=8, font_color="white", ax=ax)
-    nx.draw_networkx_edges(G, yer, width=[1 + 4 * w for w in agirliklar],
-                           edge_color="#555", alpha=0.6, arrowsize=12,
-                           connectionstyle="arc3,rad=0.1", ax=ax)
+    # kenarlar: kalinlik+alpha olasiliga gore, oklar belirgin
+    nx.draw_networkx_edges(G, yer, width=kenar_genislik, edge_color="#333333",
+                           alpha=kenar_alpha, arrowsize=22, arrowstyle="-|>",
+                           node_size=boyut, connectionstyle="arc3,rad=0.1", ax=ax)
+    # en guclu birkac gecise olasilik etiketi
+    guclu = sorted(G.edges(data=True), key=lambda e: e[2]["olasilik"], reverse=True)[:etiketli_kenar]
+    kenar_etiket = {(u, v): f"{d['olasilik']:.2f}" for u, v, d in guclu}
+    nx.draw_networkx_edge_labels(G, yer, edge_labels=kenar_etiket, font_size=7,
+                                 font_color="#b5179e", label_pos=0.5,
+                                 bbox={"boxstyle": "round,pad=0.1", "fc": "white",
+                                       "ec": "none", "alpha": 0.7}, ax=ax)
     ax.set_title(f"Otomata durum gecis diyagrami (en guclu {len(kenarlar)} gecis)")
     ax.axis("off")
     fig.tight_layout()
