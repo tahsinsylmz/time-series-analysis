@@ -312,7 +312,14 @@ dağılım kaymasına dayanıklı**, **görülmemiş örüntülerde rekabetçi**
 **her kararı açıklanabilir**dir. Çalışma, *yorumlanabilirlik–doğruluk ödünleşimini*
 gerçek veriyle somut biçimde ortaya koyar.
 
-## 11. Kaynakça
+## 11. Sunum
+
+Sunum slaytları `rapor/sunum.md` dosyasındadır (Marp formatı; problem, yöntem, sonuç
+tabloları, açıklanabilirlik örneği ve istatistiksel testler gerçek deney sayılarıyla).
+PPTX/PDF'e dönüştürmek için `npx @marp-team/marp-cli rapor/sunum.md -o sunum.pptx`
+ya da VS Code "Marp for VS Code" eklentisiyle önizleyip dışa aktarın.
+
+## 12. Kaynakça
 
 [1] Lin, J., Keogh, E., Lonardi, S., Chiu, B. (2003). *A Symbolic Representation of
 Time Series, with Implications for Streaming Algorithms.* Proc. 8th ACM SIGMOD
