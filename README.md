@@ -273,6 +273,9 @@ python -m scripts.run_experiments
 # 5) Figürler ve açıklanabilirlik demosu
 python -m scripts.make_figures
 python -m scripts.demo_explain
+
+# 6) Sunum demosu (özet + canlı açıklama + sonuç tablosu, tek komut, ~birkaç sn)
+python -m scripts.sunum_demo
 ```
 
 Çıktılar `results/` altına yazılır: `olcumler.csv`, `ozet.csv`,
