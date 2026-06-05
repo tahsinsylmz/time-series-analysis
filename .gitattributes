@@ -1,0 +1,7 @@
+# Satir sonlarini depo icinde tutarli (LF) tut; checkout'ta isletim sistemine uyarlanir.
+* text=auto
+
+# Ikili dosyalar (donusume ugramamali)
+*.png binary
+*.jpg binary
+*.pdf binary
